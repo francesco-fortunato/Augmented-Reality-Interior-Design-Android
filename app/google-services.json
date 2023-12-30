@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "586000914345",
+    "firebase_url": "https://mac-proj-5f6eb-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "mac-proj-5f6eb",
+    "storage_bucket": "mac-proj-5f6eb.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:586000914345:android:3eb1980cf6e925d6b7d6b8",
+        "android_client_info": {
+          "package_name": "com.example.camera"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBh5HsRBxwTyIbbt3zuLXXM0rZQPjCe03M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
