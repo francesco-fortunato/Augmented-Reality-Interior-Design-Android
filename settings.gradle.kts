@@ -10,8 +10,11 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+
     }
+
 }
+
 
 rootProject.name = "Camera"
 include(":app")
