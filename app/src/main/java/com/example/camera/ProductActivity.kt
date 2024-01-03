@@ -12,13 +12,14 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
+import com.google.firebase.database.getValue
 
 class ProductActivity : ComponentActivity() {
-    var title: String? = null
-    var shortdesc: String? = null
-    var rating: Double? = null
-    var price: Double? = null
-    var img: String? = null
+    var title: String = ""
+    var shortdesc: String = ""
+    var rating: Double = 0.0
+    var price: Double = 0.0
+    var img: Int = 0
     var id: Int = 0
 
     var Playground: Button? = null
@@ -58,16 +59,30 @@ class ProductActivity : ComponentActivity() {
                 val stringBuilder = StringBuilder()
                 Log.d("Firebase", "onDataChange called")
                 for (productSnapshot in dataSnapshot.children) {
-                    Log.d("Firebase", "Product snapshot: $productSnapshot")
+                    //Log.d("Firebase", "Product snapshot: $productSnapshot")
 
-                    val productData = productSnapshot.getValue(Product::class.java)
-                    Log.d("Firebase", "Product data: ${productData?.getTitle()}")
+                    //Log.d("Firebase", "Product data: ${productSnapshot?.child("title")?.getValue<String>()}")
 
+                    id = productSnapshot.child("id").getValue<Int>()!!
+                    title = productSnapshot.child("title").getValue<String>()!!
+                    shortdesc = productSnapshot.child("shortdesc").getValue<String>()!!
+                    rating = productSnapshot.child("rating").getValue<Double>()!!
+                    price = productSnapshot.child("price").getValue<Double>()!!
+
+                    val productData= Product(id,getDrawableResourceForProduct(title),price,rating,shortdesc,title)
+                    productList!!.add(productData)
+                   // val productData = Product
+
+                    //val productData = Product()
+                    //Log.d("Firebase", "Product data: ${productData?.title}")
+                    //Log.d("Firebase", "Product data: ${productData?.img}")
                    //var product= Product(productData.id,productData)
-
-                    if (productData != null) {
+                   // productList!!.add(productData)
+                   /* if (productData != null) {
+                        productData.img = getDrawableResourceForProduct(productData)
                         productList!!.add(productData)
-                    }
+
+                    }*/
 
                 }
                 Log.d("InvokeSuccess -> ", "contenuto lista: ${productList.toString()}")
@@ -81,11 +96,24 @@ class ProductActivity : ComponentActivity() {
             }
         }
 
+
+
         rootReference.addValueEventListener(rootListener)
 
 
     }
 
+    private fun getDrawableResourceForProduct(title: String): Int {
+        // Implement your logic here to determine the drawable resource ID
+        // For example, you could switch on the product title or use some other criteria
+        return when (title) {
+            "Chair" -> R.drawable.chair
+            "table" -> R.drawable.table
+            "Couch" -> R.drawable.black_couch
+            "Corner table" -> R.drawable.corner_table
+            else -> R.drawable.chair // Default image resource ID
+        }
+    }
 
 fun loadData(){
     val run = Runnable {

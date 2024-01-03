@@ -33,11 +33,11 @@ import kotlin.Int
 
     override fun onBindViewHolder(@NonNull productViewHolder: ProductViewHolder, i: Int) {
         val product: Product = productList[i]
-        productViewHolder.textViewTitle.setText(product.getTitle())
-        productViewHolder.textViewDesc.setText(product.getShortdesc())
-        productViewHolder.textViewRating.setText(String.valueOf(product.getRating()))
-        productViewHolder.textViewPrice.setText(String.valueOf(product.getPrice()))
-        //productViewHolder.imageView.setImageDrawable(mCtx.resources.getDrawable(product.getImage()))
+        productViewHolder.textViewTitle.setText(product.title)
+        productViewHolder.textViewDesc.setText(product.shortdesc)
+        productViewHolder.textViewRating.setText(String.valueOf(product.rating))
+        productViewHolder.textViewPrice.setText(String.valueOf(product.price))
+        productViewHolder.imageView.setImageDrawable(mCtx.resources.getDrawable(product.img))
     }
 
 
