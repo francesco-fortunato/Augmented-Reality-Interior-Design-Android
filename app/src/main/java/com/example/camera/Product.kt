@@ -2,25 +2,28 @@ package com.example.camera
 
 import android.annotation.SuppressLint
 
-class Product {
+data class Product(
 
-    private var id: Int = 0
-    private var title: String? = ""
-    private  var shortdesc: String? = ""
-    private var rating = 0.0
-    private  var price:kotlin.Double = 0.0
-    private var image:String  = ""
+val id: Int = 0,
+var img: Int = 0,
+val price: Double = 0.0,
+val rating: Double = 0.0,
+val shortdesc: String = "",
+val title: String = ""
+)
 
-    fun Product(id: Int, title: String?, shortdesc: String?, rating: Double, price: Double, image: String) {
+
+
+    /*fun Product(id: Int, title: String?, shortdesc: String?, rating: Double, price: Double, image: Int) {
         this.id = id
         this.title = title
-         this.shortdesc = shortdesc
+        this.shortdesc = shortdesc
         this.rating = rating
         this.price = price
         this.image = image
-    }
+    }*/
 
-    fun getId(): Int {
+    /* fun getId(): Int {
         return id
     }
 
@@ -40,8 +43,8 @@ class Product {
         return price
     }
 
-    fun getImage(): String {
+    fun getImage(): Int {
         return image
     }
 
-}
+}*/
