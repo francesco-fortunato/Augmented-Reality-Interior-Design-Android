@@ -1,6 +1,6 @@
 package com.example.camera
 
-import android.annotation.SuppressLint
+
 
 data class Product(
 

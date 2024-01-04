@@ -1,8 +1,10 @@
 package com.example.camera
 
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.view.View
 import android.widget.Button
 import androidx.activity.ComponentActivity
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -22,7 +24,7 @@ class ProductActivity : ComponentActivity() {
     var img: Int = 0
     var id: Int = 0
 
-    var Playground: Button? = null
+
     var recyclerView: RecyclerView? = null
     var productList: MutableList<Product>? = null
     var adapter: ProductAdapter? = null
@@ -37,7 +39,7 @@ class ProductActivity : ComponentActivity() {
 
         setContentView(R.layout.activity_product)
 
-        Playground = findViewById(R.id.btnPlayground)
+        var Playground: Button = findViewById(R.id.btnPlayground)
 
         productList = ArrayList<Product>()
 
@@ -47,6 +49,12 @@ class ProductActivity : ComponentActivity() {
 
 
         printAllObjects()
+
+        Playground.setOnClickListener(View.OnClickListener { v: View? ->
+            val intent = Intent(this@ProductActivity, ARActivity::class.java)
+            startActivity(intent)
+        })
+
     }
 
 
@@ -56,7 +64,7 @@ class ProductActivity : ComponentActivity() {
 
         val rootListener = object : ValueEventListener {
             override fun onDataChange(dataSnapshot: DataSnapshot) {
-                val stringBuilder = StringBuilder()
+
                 Log.d("Firebase", "onDataChange called")
                 for (productSnapshot in dataSnapshot.children) {
                     //Log.d("Firebase", "Product snapshot: $productSnapshot")

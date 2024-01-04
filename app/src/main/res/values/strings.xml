@@ -3,4 +3,6 @@
     <string name="title_activity_camera">CameraActivity</string>
     <string name="title_activity_product">ProductActivity</string>
     <string name="title_activity_main2">MainActivity2</string>
+    <string name="title_activity_aractivity">ARActivity</string>
+    <string name="point_your_phone_down">Point your phone down at an empty space, and move it</string>
 </resources>
