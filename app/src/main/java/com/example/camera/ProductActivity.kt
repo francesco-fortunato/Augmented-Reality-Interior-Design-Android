@@ -117,7 +117,7 @@ class ProductActivity : ComponentActivity() {
         return when (title) {
             "Chair" -> R.drawable.chair
             "table" -> R.drawable.table
-            "Couch" -> R.drawable.black_couch
+            "Couch" -> R.drawable.black_sofa
             "Corner table" -> R.drawable.corner_table
             else -> R.drawable.chair // Default image resource ID
         }

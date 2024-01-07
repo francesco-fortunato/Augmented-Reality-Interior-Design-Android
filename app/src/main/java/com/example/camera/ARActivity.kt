@@ -1,13 +1,23 @@
 package com.example.camera
 
+
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material.Button
+import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -17,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -47,7 +58,8 @@ import io.github.sceneview.rememberNodes
 import io.github.sceneview.rememberOnGestureListener
 import io.github.sceneview.rememberView
 
-private const val kModelFile = "models/black_sofa.glb"
+
+private var kModelFile = ""
 private const val kMaxModelInstances = 10
 
 class ARActivity : ComponentActivity() {
@@ -56,12 +68,15 @@ class ARActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         setContent {
+
                 // A surface container using the 'background' color from the theme
                 Box(
+
                     modifier = Modifier.fillMaxSize(),
                 ) {
                     // The destroy calls are automatically made when their disposable effect leaves
                     // the composition or its key changes.
+
                     val engine = rememberEngine()
                     val modelLoader = rememberModelLoader(engine)
                     val materialLoader = rememberMaterialLoader(engine)
@@ -93,6 +108,9 @@ class ARActivity : ComponentActivity() {
                             config.instantPlacementMode = Config.InstantPlacementMode.LOCAL_Y_UP
                             config.lightEstimationMode =
                                 Config.LightEstimationMode.ENVIRONMENTAL_HDR
+                            config.planeFindingMode = Config.PlaneFindingMode.HORIZONTAL_AND_VERTICAL
+                            config.focusMode= Config.FocusMode.AUTO
+
                         },
                         cameraNode = cameraNode,
                         planeRenderer = planeRenderer,
@@ -138,7 +156,71 @@ class ARActivity : ComponentActivity() {
                                         }
                                 }
                             })
+
                     )
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(5.dp)
+                            .align(Alignment.BottomCenter)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .horizontalScroll(rememberScrollState())
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+
+                            Button(
+                                colors = ButtonDefaults.outlinedButtonColors(backgroundColor = Color.Transparent),
+                                onClick = { changeModelFile("models/black_sofa.glb")},
+                                elevation = ButtonDefaults.elevation(defaultElevation = 0.dp, pressedElevation = 0.dp)
+
+                            ) {
+                                val imageModifier= Modifier.size(200.dp)
+                                Image(painterResource(id= R.drawable.black_sofa),
+                                    contentDescription = null,
+                                    modifier = imageModifier)
+                            }
+                            Button(
+                                onClick = { changeModelFile("models/table.glb") },
+                                colors = ButtonDefaults.outlinedButtonColors(backgroundColor = Color.Transparent) ,
+                                elevation = ButtonDefaults.elevation(defaultElevation = 0.dp, pressedElevation = 0.dp)
+
+                            ) {
+                                val imageModifier= Modifier.size(200.dp)
+                                Image(painterResource(id= R.drawable.corner_table),
+                                    contentDescription = null,
+                                    modifier = imageModifier)
+                            }
+                            Button(
+                                colors = ButtonDefaults.outlinedButtonColors(backgroundColor = Color.Transparent) ,
+                                onClick = { changeModelFile("models/.glb") },
+                                elevation = ButtonDefaults.elevation(defaultElevation = 0.dp, pressedElevation = 0.dp)
+
+                            ) {
+                                val imageModifier= Modifier.size(200.dp)
+                                Image(painterResource(id= R.drawable.chair),
+                                    contentDescription = null,
+                                    modifier = imageModifier)
+                            }
+                            Button(
+                                colors = ButtonDefaults.outlinedButtonColors(backgroundColor = Color.Transparent) ,
+                                onClick = { changeModelFile("models/.glb") },
+                                elevation = ButtonDefaults.elevation(defaultElevation = 0.dp, pressedElevation = 0.dp)
+                            ) {
+                                val imageModifier= Modifier.size(200.dp)
+                                Image(painterResource(id= R.drawable.table),
+                                    contentDescription = null,
+                                    modifier = imageModifier)
+                            }
+                            // Add more buttons as needed
+                        }
+
+                    }
+
                     Text(
                         modifier = Modifier
                             .systemBarsPadding()
@@ -159,6 +241,12 @@ class ARActivity : ComponentActivity() {
                 }
 
         }
+
+
+    }
+
+    private fun changeModelFile(newModelFile: String) {
+        kModelFile = newModelFile
     }
 
     fun createAnchorNode(
@@ -172,7 +260,8 @@ class ARActivity : ComponentActivity() {
         val modelNode = ModelNode(
             modelInstance = modelInstances.apply {
                 if (isEmpty()) {
-                    this += modelLoader.createInstancedModel(kModelFile, kMaxModelInstances)
+                    this += modelLoader.createInstancedModel("https://firebasestorage.googleapis.com/v0/b/mac-proj-5f6eb.appspot.com/o/black_sofa.glb?alt=media&token=471ced3f-1a88-49b4-b548-35f99567cae1"
+                        , kMaxModelInstances)
                 }
             }.removeLast(),
             // Scale to fit in a 0.5 meters cube
@@ -199,5 +288,4 @@ class ARActivity : ComponentActivity() {
         }
         return anchorNode
     }
-    }
-
+}
