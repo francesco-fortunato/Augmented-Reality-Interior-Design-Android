@@ -115,11 +115,11 @@ class ProductActivity : ComponentActivity() {
         // Implement your logic here to determine the drawable resource ID
         // For example, you could switch on the product title or use some other criteria
         return when (title) {
-            "Chair" -> R.drawable.chair
-            "table" -> R.drawable.table
+            "Chair" -> R.drawable.office_chair
+            "table" -> R.drawable.folding_table
             "Couch" -> R.drawable.black_sofa
-            "Corner table" -> R.drawable.corner_table
-            else -> R.drawable.chair // Default image resource ID
+            "Corner table" -> R.drawable.sideboard
+            else -> R.drawable.black_sofa // Default image resource ID
         }
     }
 
