@@ -59,7 +59,7 @@ import io.github.sceneview.rememberOnGestureListener
 import io.github.sceneview.rememberView
 
 
-private var kModelFile = ""
+//private const val kModelFile = "https://firebasestorage.googleapis.com/v0/b/mac-proj-5f6eb.appspot.com/o/black_sofa.glb?alt=media&token=2f40c941-06e3-4c09-aa05-52f4cdd86bf0"
 private const val kMaxModelInstances = 10
 
 class ARActivity : ComponentActivity() {
@@ -68,98 +68,106 @@ class ARActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         setContent {
+            var kModelFile by remember { mutableStateOf("https://firebasestorage.googleapis.com/v0/b/mac-proj-5f6eb.appspot.com/o/black_sofa.glb?alt=media&token=2f40c941-06e3-4c09-aa05-52f4cdd86bf0") }
+            // A surface container using the 'background' color from the theme
+            Box(
 
-                // A surface container using the 'background' color from the theme
-                Box(
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                // The destroy calls are automatically made when their disposable effect leaves
+                // the composition or its key changes.
 
+                val engine = rememberEngine()
+                val modelLoader = rememberModelLoader(engine)
+                val materialLoader = rememberMaterialLoader(engine)
+                val cameraNode = rememberARCameraNode(engine)
+                val childNodes = rememberNodes()
+                val view = rememberView(engine)
+                val collisionSystem = rememberCollisionSystem(view)
+
+                var planeRenderer by remember { mutableStateOf(true) }
+
+                val modelInstances = remember { mutableListOf<ModelInstance>() }
+
+
+                var trackingFailureReason by remember {
+                    mutableStateOf<TrackingFailureReason?>(null)
+                }
+                var frame by remember { mutableStateOf<Frame?>(null) }
+                ARScene(
                     modifier = Modifier.fillMaxSize(),
-                ) {
-                    // The destroy calls are automatically made when their disposable effect leaves
-                    // the composition or its key changes.
-
-                    val engine = rememberEngine()
-                    val modelLoader = rememberModelLoader(engine)
-                    val materialLoader = rememberMaterialLoader(engine)
-                    val cameraNode = rememberARCameraNode(engine)
-                    val childNodes = rememberNodes()
-                    val view = rememberView(engine)
-                    val collisionSystem = rememberCollisionSystem(view)
-
-                    var planeRenderer by remember { mutableStateOf(true) }
-
-                    val modelInstances = remember { mutableListOf<ModelInstance>() }
-                    var trackingFailureReason by remember {
-                        mutableStateOf<TrackingFailureReason?>(null)
-                    }
-                    var frame by remember { mutableStateOf<Frame?>(null) }
-                    ARScene(
-                        modifier = Modifier.fillMaxSize(),
-                        childNodes = childNodes,
-                        engine = engine,
-                        view = view,
-                        modelLoader = modelLoader,
-                        collisionSystem = collisionSystem,
-                        sessionConfiguration = { session, config ->
-                            config.depthMode =
+                    childNodes = childNodes,
+                    engine = engine,
+                    view = view,
+                    modelLoader = modelLoader,
+                    collisionSystem = collisionSystem,
+                    sessionConfiguration = { session, config ->
+                        /* config.depthMode =
                                 when (session.isDepthModeSupported(Config.DepthMode.AUTOMATIC)) {
                                     true -> Config.DepthMode.AUTOMATIC
                                     else -> Config.DepthMode.DISABLED
-                                }
-                            config.instantPlacementMode = Config.InstantPlacementMode.LOCAL_Y_UP
-                            config.lightEstimationMode =
-                                Config.LightEstimationMode.ENVIRONMENTAL_HDR
-                            config.planeFindingMode = Config.PlaneFindingMode.HORIZONTAL_AND_VERTICAL
-                            config.focusMode= Config.FocusMode.AUTO
+                                }*/
+                        config.depthMode = Config.DepthMode.AUTOMATIC
+                        config.instantPlacementMode = Config.InstantPlacementMode.LOCAL_Y_UP
+                        config.lightEstimationMode = Config.LightEstimationMode.ENVIRONMENTAL_HDR
+                        config.planeFindingMode = Config.PlaneFindingMode.HORIZONTAL_AND_VERTICAL
+                        config.focusMode = Config.FocusMode.AUTO
+                        config.instantPlacementMode = Config.InstantPlacementMode.DISABLED
 
-                        },
-                        cameraNode = cameraNode,
-                        planeRenderer = planeRenderer,
-                        onTrackingFailureChanged = {
-                            trackingFailureReason = it
-                        },
-                        onSessionUpdated = { session, updatedFrame ->
-                            frame = updatedFrame
+                    },
+                    cameraNode = cameraNode,
+                    planeRenderer = planeRenderer,
+                    onTrackingFailureChanged = {
+                        trackingFailureReason = it
+                    },
+                    onSessionUpdated = { session, updatedFrame ->
+                        frame = updatedFrame
 
-                            if (childNodes.isEmpty()) {
-                                updatedFrame.getUpdatedPlanes()
-                                    .firstOrNull { it.type == Plane.Type.HORIZONTAL_UPWARD_FACING }
-                                    ?.let { it.createAnchorOrNull(it.centerPose) }?.let { anchor ->
+                        if (childNodes.isEmpty()) {
+                            updatedFrame.getUpdatedPlanes()
+                                .firstOrNull { it.type == Plane.Type.HORIZONTAL_UPWARD_FACING }
+                                ?.let { it.createAnchorOrNull(it.centerPose) }?.let { anchor ->
                                         childNodes += createAnchorNode(
                                             engine = engine,
                                             modelLoader = modelLoader,
                                             materialLoader = materialLoader,
                                             modelInstances = modelInstances,
-                                            anchor = anchor
+                                            anchor = anchor,
+                                            model = kModelFile
+
                                         )
                                     }
-                            }
-                        },
-                        onGestureListener = rememberOnGestureListener(
-                            onSingleTapConfirmed = { motionEvent, node ->
-                                if (node == null) {
-                                    val hitResults = frame?.hitTest(motionEvent.x, motionEvent.y)
-                                    hitResults?.firstOrNull {
-                                        it.isValid(
-                                            depthPoint = false,
-                                            point = false
+                        }
+                    },
+                    onGestureListener = rememberOnGestureListener(
+                        onSingleTapConfirmed = { motionEvent, node ->
+                            if (node == null) {
+                                val hitResults = frame?.hitTest(motionEvent.x, motionEvent.y)
+                                hitResults?.firstOrNull {
+                                    it.isValid(
+                                        depthPoint = false,
+                                        point = false
+                                    )
+                                }?.createAnchorOrNull()
+                                    ?.let { anchor ->
+                                        planeRenderer = false
+                                        childNodes += createAnchorNode(
+                                            engine = engine,
+                                            modelLoader = modelLoader,
+                                            materialLoader = materialLoader,
+                                            modelInstances = modelInstances,
+                                            anchor = anchor,
+                                            model = kModelFile
                                         )
-                                    }?.createAnchorOrNull()
-                                        ?.let { anchor ->
-                                            planeRenderer = false
-                                            childNodes += createAnchorNode(
-                                                engine = engine,
-                                                modelLoader = modelLoader,
-                                                materialLoader = materialLoader,
-                                                modelInstances = modelInstances,
-                                                anchor = anchor
-                                            )
-                                        }
-                                }
-                            })
 
-                    )
+                                    }
+                            }
+                        })
 
-                    Column(
+
+                )
+
+                   Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(5.dp)
@@ -175,7 +183,7 @@ class ARActivity : ComponentActivity() {
 
                             Button(
                                 colors = ButtonDefaults.outlinedButtonColors(backgroundColor = Color.Transparent),
-                                onClick = { changeModelFile("models/black_sofa.glb")},
+                                onClick = { kModelFile= "https://firebasestorage.googleapis.com/v0/b/mac-proj-5f6eb.appspot.com/o/black_sofa.glb?alt=media&token=2f40c941-06e3-4c09-aa05-52f4cdd86bf0"},
                                 elevation = ButtonDefaults.elevation(defaultElevation = 0.dp, pressedElevation = 0.dp)
 
                             ) {
@@ -185,7 +193,7 @@ class ARActivity : ComponentActivity() {
                                     modifier = imageModifier)
                             }
                             Button(
-                                onClick = { changeModelFile("models/table.glb") },
+                                onClick = { kModelFile= "https://firebasestorage.googleapis.com/v0/b/mac-proj-5f6eb.appspot.com/o/corner_table.glb?alt=media&token=344fa46d-1226-451c-a37e-346882eb6db6"},
                                 colors = ButtonDefaults.outlinedButtonColors(backgroundColor = Color.Transparent) ,
                                 elevation = ButtonDefaults.elevation(defaultElevation = 0.dp, pressedElevation = 0.dp)
 
@@ -197,7 +205,7 @@ class ARActivity : ComponentActivity() {
                             }
                             Button(
                                 colors = ButtonDefaults.outlinedButtonColors(backgroundColor = Color.Transparent) ,
-                                onClick = { changeModelFile("models/.glb") },
+                                onClick = { kModelFile= "https://firebasestorage.googleapis.com/v0/b/mac-proj-5f6eb.appspot.com/o/chair.glb?alt=media&token=b7d8e903-9250-4b1c-ae8c-87d098b5c36a"},
                                 elevation = ButtonDefaults.elevation(defaultElevation = 0.dp, pressedElevation = 0.dp)
 
                             ) {
@@ -208,7 +216,7 @@ class ARActivity : ComponentActivity() {
                             }
                             Button(
                                 colors = ButtonDefaults.outlinedButtonColors(backgroundColor = Color.Transparent) ,
-                                onClick = { changeModelFile("models/.glb") },
+                                onClick = { kModelFile= "https://firebasestorage.googleapis.com/v0/b/mac-proj-5f6eb.appspot.com/o/table.glb?alt=media&token=f297eee2-cba6-4416-afef-1d1b678cab33"},
                                 elevation = ButtonDefaults.elevation(defaultElevation = 0.dp, pressedElevation = 0.dp)
                             ) {
                                 val imageModifier= Modifier.size(200.dp)
@@ -216,76 +224,93 @@ class ARActivity : ComponentActivity() {
                                     contentDescription = null,
                                     modifier = imageModifier)
                             }
-                            // Add more buttons as needed
+                            Button(
+                                colors = ButtonDefaults.outlinedButtonColors(backgroundColor = Color.Transparent) ,
+                                onClick = { kModelFile= "https://firebasestorage.googleapis.com/v0/b/mac-proj-5f6eb.appspot.com/o/office_chair.glb?alt=media&token=7bb7eee6-b57a-4e1e-ac21-0f159e2624bb"},
+                                elevation = ButtonDefaults.elevation(defaultElevation = 0.dp, pressedElevation = 0.dp)
+                            ) {
+                                val imageModifier= Modifier.size(200.dp)
+                                Image(painterResource(id= R.drawable.office_chair),
+                                    contentDescription = null,
+                                    modifier = imageModifier)
+                            }
                         }
 
                     }
 
-                    Text(
-                        modifier = Modifier
-                            .systemBarsPadding()
-                            .fillMaxWidth()
-                            .align(Alignment.TopCenter)
-                            .padding(top = 16.dp, start = 32.dp, end = 32.dp),
-                        textAlign = TextAlign.Center,
-                        fontSize = 28.sp,
-                        color = Color.White,
-                        text = trackingFailureReason?.let {
-                            it.getDescription(LocalContext.current)
-                        } ?: if (childNodes.isEmpty()) {
-                            stringResource(R.string.point_your_phone_down)
-                        } else {
-                            stringResource(R.string.tap_anywhere_to_add_model)
-                        }
-                    )
-                }
+                Text(
+                    modifier = Modifier
+                        .systemBarsPadding()
+                        .fillMaxWidth()
+                        .align(Alignment.TopCenter)
+                        .padding(top = 16.dp, start = 32.dp, end = 32.dp),
+                    textAlign = TextAlign.Center,
+                    fontSize = 28.sp,
+                    color = Color.White,
+                    text = trackingFailureReason?.let {
+                        it.getDescription(LocalContext.current)
+                    } ?: if (childNodes.isEmpty()) {
+                        stringResource(R.string.point_your_phone_down)
+                    } else {
+                        stringResource(R.string.tap_anywhere_to_add_model)
+                    }
+                )
+            }
 
         }
 
 
     }
 
-    private fun changeModelFile(newModelFile: String) {
+    /*   private fun changeModelFile(newModelFile: String) {
         kModelFile = newModelFile
-    }
-
+    }*/
     fun createAnchorNode(
         engine: Engine,
         modelLoader: ModelLoader,
         materialLoader: MaterialLoader,
         modelInstances: MutableList<ModelInstance>,
-        anchor: Anchor
+        anchor: Anchor,
+        model: String
     ): AnchorNode {
+        // Log.d("createAnchorNode", "Creating anchor node for $model")
         val anchorNode = AnchorNode(engine = engine, anchor = anchor)
-        val modelNode = ModelNode(
-            modelInstance = modelInstances.apply {
-                if (isEmpty()) {
-                    this += modelLoader.createInstancedModel("https://firebasestorage.googleapis.com/v0/b/mac-proj-5f6eb.appspot.com/o/black_sofa.glb?alt=media&token=471ced3f-1a88-49b4-b548-35f99567cae1"
-                        , kMaxModelInstances)
-                }
-            }.removeLast(),
-            // Scale to fit in a 0.5 meters cube
-            scaleToUnits = 0.5f
-        ).apply {
-            // Model Node needs to be editable for independent rotation from the anchor rotation
-            isEditable = true
-        }
-        val boundingBoxNode = CubeNode(
-            engine,
-            size = modelNode.extents,
-            center = modelNode.center,
-            materialInstance = materialLoader.createColorInstance(Color.White.copy(alpha = 0.5f))
-        ).apply {
-            isVisible = false
-        }
-        modelNode.addChildNode(boundingBoxNode)
-        anchorNode.addChildNode(modelNode)
 
-        listOf(modelNode, anchorNode).forEach {
-            it.onEditingChanged = { editingTransforms ->
-                boundingBoxNode.isVisible = editingTransforms.isNotEmpty()
+        // Asynchronously load instanced models
+        modelLoader.loadInstancedModelAsync(model, 2) { loadedModelInstances ->
+            // Use the loaded instances to create the ModelNode
+            val modelNode = ModelNode(
+                modelInstance = loadedModelInstances.component1(),
+                // Scale to fit in a 0.5 meters cube
+                scaleToUnits = 0.3f,
+
+                ).apply {
+                // Model Node needs to be editable for independent rotation from the anchor rotation
+                isEditable = true
+            }
+
+            // Create bounding box node
+            val boundingBoxNode = CubeNode(
+                engine,
+                size = modelNode.extents,
+                center = modelNode.center,
+                materialInstance = materialLoader.createColorInstance(Color.White.copy(alpha = 0.5f))
+            ).apply {
+                isVisible = false
+            }
+
+            // Add nodes to the anchor
+            modelNode.addChildNode(boundingBoxNode)
+            anchorNode.addChildNode(modelNode)
+
+            // Handle onEditingChanged event
+            listOf(modelNode, anchorNode).forEach {
+                it.onEditingChanged = { editingTransforms ->
+                    boundingBoxNode.isVisible = editingTransforms.isNotEmpty()
+                }
             }
         }
+
         return anchorNode
     }
 }
