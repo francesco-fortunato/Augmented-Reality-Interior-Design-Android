@@ -36,11 +36,9 @@ import com.google.android.filament.Engine
 import com.google.ar.core.Anchor
 import com.google.ar.core.Config
 import com.google.ar.core.Frame
-import com.google.ar.core.Plane
 import com.google.ar.core.TrackingFailureReason
 import io.github.sceneview.ar.ARScene
 import io.github.sceneview.ar.arcore.createAnchorOrNull
-import io.github.sceneview.ar.arcore.getUpdatedPlanes
 import io.github.sceneview.ar.arcore.isValid
 import io.github.sceneview.ar.getDescription
 import io.github.sceneview.ar.node.AnchorNode
@@ -121,7 +119,7 @@ class ARActivity : ComponentActivity() {
                     onSessionUpdated = { session, updatedFrame ->
                         frame = updatedFrame
 
-                        if (childNodes.isEmpty()) {
+                      /*  if (childNodes.isEmpty()) {
                             updatedFrame.getUpdatedPlanes()
                                 .firstOrNull { it.type == Plane.Type.HORIZONTAL_UPWARD_FACING }
                                 ?.let { it.createAnchorOrNull(it.centerPose) }?.let { anchor ->
@@ -135,7 +133,7 @@ class ARActivity : ComponentActivity() {
 
                                         )
                                     }
-                        }
+                        }*/
                     },
                     onGestureListener = rememberOnGestureListener(
                         onSingleTapConfirmed = { motionEvent, node ->
