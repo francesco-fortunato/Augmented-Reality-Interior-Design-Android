@@ -11,9 +11,11 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.0" />
 
     <FrameLayout
         android:id="@+id/loadingView"
@@ -35,6 +37,20 @@
             app:trackColor="#3FFFFFFF" />
     </FrameLayout>
 
+
+
+    <Button
+        android:id="@+id/btn"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        app:layout_constraintEnd_toEndOf="@id/horizontalScrollView"
+        app:layout_constraintTop_toTopOf="@id/horizontalScrollView"
+        app:layout_constraintBottom_toBottomOf="@+id/horizontalScrollView"
+        android:layout_marginTop="0dp"
+        android:layout_marginBottom="150dp"
+        android:background="@drawable/arrow"/>
+
+
     <HorizontalScrollView
         android:id="@+id/horizontalScrollView"
         android:layout_width="0dp"
@@ -42,7 +58,8 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent">
+        app:layout_constraintRight_toRightOf="parent"
+        android:visibility="visible">
 
         <!-- LinearLayout to hold buttons horizontally -->
         <LinearLayout
@@ -51,6 +68,7 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="45dp"
             android:orientation="horizontal"
+            android:visibility="visible"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintTop_toTopOf="parent">
 
@@ -96,7 +114,6 @@
                 android:layout_height="100dp"
                 android:background="@drawable/sideboard"
                 android:text="Button 2" />
-
         </LinearLayout>
     </HorizontalScrollView>
 
@@ -122,9 +139,11 @@
         android:id="@+id/toolbar"
         android:layout_width="0dp"
         android:layout_height="?actionBarSize"
+        android:layout_marginTop="4dp"
         android:fitsSystemWindows="true"
         android:minHeight="?attr/actionBarSize"
         android:theme="@style/Theme.SceneViewSample.Toolbar"
+        app:layout_constraintHorizontal_bias="1.0"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toTopOf="parent" />

@@ -5,7 +5,9 @@ import android.app.Activity
 import android.os.Bundle
 import android.view.MotionEvent
 import android.view.View
+import android.widget.Button
 import android.widget.ImageButton
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.graphics.Insets
@@ -42,6 +44,9 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
     lateinit var sceneView: ARSceneView
     lateinit var loadingView: View
     lateinit var instructionText: TextView
+    lateinit var horiz_hide_show: LinearLayout
+    lateinit var button_hide_show : Button
+    var vis: Boolean = false
     var isLoading = false
         set(value) {
             field = value
@@ -240,6 +245,24 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
         b = findViewById<ImageButton?>(R.id.button4).apply { setOnClickListener{kmodel="https://firebasestorage.googleapis.com/v0/b/mac-proj-5f6eb.appspot.com/o/sectional.glb?alt=media&token=d9efc97b-07ad-44aa-bd84-768a5d916062"}  }
         b = findViewById<ImageButton?>(R.id.button5).apply { setOnClickListener{kmodel="https://firebasestorage.googleapis.com/v0/b/mac-proj-5f6eb.appspot.com/o/sideboard.glb?alt=media&token=dc717563-3459-42e4-91e6-fcf63d48a9bd"}  }
         b = findViewById<ImageButton?>(R.id.button5).apply { setOnClickListener{kmodel="https://firebasestorage.googleapis.com/v0/b/mac-proj-5f6eb.appspot.com/o/sofa1.glb?alt=media&token=0e299740-c6bc-46e5-9211-713a09e67bc7"}  }
+
+
+        horiz_hide_show = findViewById(R.id.buttonsContainer)
+
+        button_hide_show= findViewById<Button?>(R.id.btn).apply { setOnClickListener{
+
+            if(vis == false ){
+                horiz_hide_show.setVisibility(View.GONE)
+                vis = !vis
+            }
+            else{
+                horiz_hide_show.setVisibility(View.VISIBLE)
+                vis = !vis
+            }
+
+        } }
+
+
 
     }
 
