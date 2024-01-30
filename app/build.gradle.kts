@@ -87,6 +87,7 @@ dependencies {
     implementation ("androidx.compose.material:material:1.5.4")
     implementation ("androidx.compose.ui:ui-tooling-preview:1.5.4")
     implementation ("androidx.navigation:navigation-compose:2.7.5")
+    implementation ("com.squareup.okhttp3:okhttp:4.9.1")
     releaseImplementation ("io.github.sceneview:sceneview:2.0.2")
 
     implementation("androidx.recyclerview:recyclerview:1.3.2")
