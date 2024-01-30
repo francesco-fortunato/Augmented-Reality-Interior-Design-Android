@@ -1,6 +1,7 @@
 
 package com.example.camera
 
+import android.animation.ObjectAnimator
 import android.app.Activity
 import android.os.Bundle
 import android.view.MotionEvent
@@ -249,21 +250,28 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
 
         horiz_hide_show = findViewById(R.id.buttonsContainer)
 
-        button_hide_show= findViewById<Button?>(R.id.btn).apply { setOnClickListener{
-
-            if(vis == false ){
-                horiz_hide_show.setVisibility(View.GONE)
+        button_hide_show = findViewById<Button?>(R.id.btn).apply {
+            setOnClickListener {
+                if (!vis) {
+                    // Hide menu and rotate button
+                    ObjectAnimator.ofFloat(this, "rotation", 0f).start()
+                    animate().translationY(200f)
+                    horiz_hide_show.animate().translationY(horiz_hide_show.height.toFloat())
+                        .withEndAction {
+                            horiz_hide_show.visibility = View.GONE
+                        }
+                } else {
+                    // Show menu and rotate button
+                    ObjectAnimator.ofFloat(this, "rotation", 180f).start()
+                    animate().translationY(0f)
+                    horiz_hide_show.visibility = View.VISIBLE
+                    horiz_hide_show.animate().translationY(0f)
+                        .withEndAction{
+                        }
+                }
                 vis = !vis
             }
-            else{
-                horiz_hide_show.setVisibility(View.VISIBLE)
-                vis = !vis
-            }
-
-        } }
-
-
-
+        }
     }
 
     fun addAnchorNode(anchor: Anchor) {
