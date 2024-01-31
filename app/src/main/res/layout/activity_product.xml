@@ -22,13 +22,15 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="60dp"
+        android:layout_below="@+id/hi"
         android:text="Open AR Camera" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerView"
         android:layout_marginTop="115dp"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:layout_below="@+id/btnPlayground" >
     </androidx.recyclerview.widget.RecyclerView>
 
 </RelativeLayout>

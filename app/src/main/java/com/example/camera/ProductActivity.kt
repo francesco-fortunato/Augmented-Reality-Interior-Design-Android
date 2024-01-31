@@ -97,10 +97,14 @@ class ProductActivity : ComponentActivity() {
                 try {
                     val jsonResponse = JSONObject(responseBody)
                     val username = jsonResponse.getString("username")
+                    val email = jsonResponse.getString("email")
+                    val name = jsonResponse.getString("name")
+                    val surname = jsonResponse.getString("surname")
 
                     // Update the greeting TextView with the username
                     runOnUiThread {
-                        textGreeting.text = "Hi $username!"
+                        val greetingText = "Hi $username!\nEmail: $email\nName: $name\nSurname: $surname"
+                        textGreeting.text = greetingText
                         textGreeting.visibility = View.VISIBLE
                     }
                 } catch (e: JSONException) {
