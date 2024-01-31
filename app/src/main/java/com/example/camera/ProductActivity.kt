@@ -1,11 +1,13 @@
 package com.example.camera
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.widget.Button
+import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -15,6 +17,10 @@ import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.getValue
+import okhttp3.*
+import org.json.JSONException
+import org.json.JSONObject
+import java.io.IOException
 
 class ProductActivity : ComponentActivity() {
     var title: String = ""
@@ -32,6 +38,7 @@ class ProductActivity : ComponentActivity() {
     //private lateinit var productInfoTextView: TextView
     private lateinit var database: DatabaseReference
 
+    private lateinit var textGreeting: TextView
 
     @SuppressLint("MissingInflatedId")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -49,12 +56,58 @@ class ProductActivity : ComponentActivity() {
 
 
         printAllObjects()
+        textGreeting = findViewById(R.id.hi) // Move this line here
+
+        // Fetch user profile after initializing the view
+        fetchUserProfile()
 
         Playground.setOnClickListener(View.OnClickListener { v: View? ->
             val intent = Intent(this@ProductActivity, ARActivity::class.java)
             startActivity(intent)
         })
+    }
+    private fun fetchUserProfile() {
+        // Make a network request to Flask /profile
+        // Use an HTTP client library like Retrofit or OkHttp for network requests
 
+        //  User data class with a 'username' property
+        val profileUrl = "https://frafortu.pythonanywhere.com/profile"
+        // Get the JWT from SharedPreferences
+        val sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
+        val authToken = sharedPreferences.getString("jwtToken", "")
+
+        // Make a GET request to fetch user profile
+        val client = OkHttpClient()
+        val request = Request.Builder()
+            .url(profileUrl)
+            .header("Content-Type", "application/json")
+            .header("Authorization", "Bearer $authToken") // Include the JWT in the Authorization header
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                e.printStackTrace()
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                val responseBody = response.body?.string()
+                Log.d("Response", responseBody ?: "Response body is null")
+
+                // Parse the JSON response to get the username
+                try {
+                    val jsonResponse = JSONObject(responseBody)
+                    val username = jsonResponse.getString("username")
+
+                    // Update the greeting TextView with the username
+                    runOnUiThread {
+                        textGreeting.text = "Hi $username!"
+                        textGreeting.visibility = View.VISIBLE
+                    }
+                } catch (e: JSONException) {
+                    e.printStackTrace()
+                }
+            }
+        })
     }
 
 

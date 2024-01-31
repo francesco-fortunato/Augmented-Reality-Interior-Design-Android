@@ -38,6 +38,19 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:exported="true"
+            android:name=".RegistrationActivity"
+            android:label="Registration Activity"
+            android:theme="@style/Theme.SceneViewSample">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+        </activity>
+
+
         <activity android:name=".ARActivity"
             android:configChanges="orientation|screenSize"
             android:exported="true"

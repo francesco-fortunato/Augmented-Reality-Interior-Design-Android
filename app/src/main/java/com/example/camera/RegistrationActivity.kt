@@ -1,0 +1,99 @@
+package com.example.camera
+
+import android.content.Context
+import android.content.Intent
+import android.os.Bundle
+import android.util.Log
+import android.widget.Button
+import android.widget.EditText
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import okhttp3.*
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import org.json.JSONException
+import org.json.JSONObject
+import java.io.IOException
+
+class RegistrationActivity : AppCompatActivity() {
+
+    private val client = OkHttpClient()
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_registration)
+
+        val nameEditText: EditText = findViewById(R.id.editTextName)
+        val surnameEditText: EditText = findViewById(R.id.editTextSurname)
+        val emailEditText: EditText = findViewById(R.id.editTextEmail)
+        val usernameEditText: EditText = findViewById(R.id.editTextUsername)
+        val passwordEditText: EditText = findViewById(R.id.editTextPassword)
+        val submitButton: Button = findViewById(R.id.buttonSubmit)
+
+        submitButton.setOnClickListener {
+            val name = nameEditText.text.toString()
+            val surname = surnameEditText.text.toString()
+            val email = emailEditText.text.toString()
+            val username = usernameEditText.text.toString()
+            val password = passwordEditText.text.toString()
+
+            registerToServer(username, password, name, surname, email)
+
+        }
+    }
+
+    private fun registerToServer(username: String, password: String, name: String, surname: String, email: String) {
+        val json = JSONObject()
+        json.put("username", username)
+        json.put("password", password)
+        json.put("name", name)
+        json.put("surname", surname)
+        json.put("email", email)
+
+        val requestBody = RequestBody.create("application/json; charset=utf-8".toMediaTypeOrNull(), json.toString())
+
+        val request = Request.Builder()
+            .url("https://frafortu.pythonanywhere.com/register")
+            .post(requestBody)
+            .header("Content-Type", "application/json")
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                showToast("Failed to connect to the server")
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                val responseBody = response.body?.string()
+                Log.d("Response", responseBody ?: "Response body is null")
+
+                try {
+                    val jsonResponse = JSONObject(responseBody)
+                    val success = jsonResponse.getBoolean("success")
+
+                    if (success) {
+                        // Registration successful, navigate back to LoginActivity
+                        runOnUiThread {
+                            showToast("Registration successful")
+                            val intent = Intent(applicationContext, LoginActivity::class.java)
+                            startActivity(intent)
+                            finish() // Close the registration activity
+                        }
+                    } else {
+                        // Registration unsuccessful, show a toast message
+                        showToast(jsonResponse.getString("message"))
+                    }
+                } catch (e: JSONException) {
+                    // Handle the JSON parsing error
+                    Log.e("JSON Parsing Error", e.message ?: "Unknown error")
+                }
+            }
+        })
+    }
+
+
+    private fun showToast(message: String) {
+        runOnUiThread {
+            Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+        }
+    }
+}
