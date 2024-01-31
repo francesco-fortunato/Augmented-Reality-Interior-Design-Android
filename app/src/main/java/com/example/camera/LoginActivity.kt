@@ -70,6 +70,7 @@ class LoginActivity : AppCompatActivity() {
                     val success = jsonResponse.getBoolean("success")
 
                     if (success) {
+                        showToast("Login successful")
                         val token = jsonResponse.getString("token")
                         saveTokenToSharedPreferences(token)
                         // Login successful, proceed to the main activity

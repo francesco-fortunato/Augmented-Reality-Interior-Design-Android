@@ -43,11 +43,6 @@
             android:name=".RegistrationActivity"
             android:label="Registration Activity"
             android:theme="@style/Theme.SceneViewSample">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-
         </activity>
 
 
