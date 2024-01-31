@@ -113,6 +113,14 @@
                 android:layout_height="100dp"
                 android:background="@drawable/sideboard"
                 android:text="Button 2" />
+
+            <!-- Button 6 -->
+            <ImageButton
+                android:id="@+id/button6"
+                android:layout_width="100dp"
+                android:layout_height="100dp"
+                android:background="@drawable/wardrobe"
+                android:text="Button 2" />
         </LinearLayout>
     </HorizontalScrollView>
 

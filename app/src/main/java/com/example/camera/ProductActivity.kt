@@ -176,6 +176,8 @@ class ProductActivity : ComponentActivity() {
             "table" -> R.drawable.folding_table
             "Couch" -> R.drawable.black_sofa
             "Corner table" -> R.drawable.sideboard
+            "Wardrobe" -> R.drawable.wardrobe
+            "couch_white" -> R.drawable.sectional
             else -> R.drawable.black_sofa // Default image resource ID
         }
     }
