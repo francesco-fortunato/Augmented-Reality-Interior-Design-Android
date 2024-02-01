@@ -6,28 +6,17 @@
     android:layout_height="match_parent"
     tools:context=".ProductActivity">
 
-    <TextView
-        android:id="@+id/hi"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="16dp"
-        android:text="Hi user!"
-        android:textSize="24sp"
-        android:visibility="gone" />
-
     <Button
         android:id="@+id/btnPlayground"
         style="@android:style/Widget.Material.Button.Colored"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="60dp"
-        android:layout_below="@+id/hi"
+        android:layout_marginTop="0dp"
         android:text="Open AR Camera" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerView"
-        android:layout_marginTop="115dp"
+        android:layout_marginTop="5dp"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_below="@+id/btnPlayground" >

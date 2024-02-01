@@ -38,8 +38,6 @@ class ProductActivity : ComponentActivity() {
     //private lateinit var productInfoTextView: TextView
     private lateinit var database: DatabaseReference
 
-    private lateinit var textGreeting: TextView
-
     @SuppressLint("MissingInflatedId")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -54,18 +52,15 @@ class ProductActivity : ComponentActivity() {
 
         database = FirebaseDatabase.getInstance().reference
 
-
         printAllObjects()
-        textGreeting = findViewById(R.id.hi) // Move this line here
-
-        // Fetch user profile after initializing the view
-        fetchUserProfile()
 
         Playground.setOnClickListener(View.OnClickListener { v: View? ->
             val intent = Intent(this@ProductActivity, ARActivity::class.java)
             startActivity(intent)
         })
     }
+
+    //We don't need it here. Useful in profile page to get user information through token auth
     private fun fetchUserProfile() {
         // Make a network request to Flask /profile
         // Use an HTTP client library like Retrofit or OkHttp for network requests
@@ -101,12 +96,6 @@ class ProductActivity : ComponentActivity() {
                     val name = jsonResponse.getString("name")
                     val surname = jsonResponse.getString("surname")
 
-                    // Update the greeting TextView with the username
-                    runOnUiThread {
-                        val greetingText = "Hi $username!\nEmail: $email\nName: $name\nSurname: $surname"
-                        textGreeting.text = greetingText
-                        textGreeting.visibility = View.VISIBLE
-                    }
                 } catch (e: JSONException) {
                     e.printStackTrace()
                 }

@@ -73,9 +73,9 @@ class LoginActivity : AppCompatActivity() {
                         showToast("Login successful")
                         val token = jsonResponse.getString("token")
                         saveTokenToSharedPreferences(token)
-                        // Login successful, proceed to the main activity
+                        // Login successful, proceed to the profile activity
                         runOnUiThread {
-                            val intent = Intent(applicationContext, MainActivity::class.java)
+                            val intent = Intent(applicationContext, ProfileActivity::class.java)
                             startActivity(intent)
                             finish() // Close the login activity
                         }
