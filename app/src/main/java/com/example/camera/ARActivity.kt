@@ -4,6 +4,7 @@ package com.example.camera
 import android.animation.ObjectAnimator
 import android.app.Activity
 import android.os.Bundle
+import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import android.widget.Button
@@ -169,7 +170,11 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
                 }
 
                 override fun onDoubleTapEvent(e: MotionEvent, node: Node?) {
-
+                    if(node!=null)
+                    {
+                        Log.d("Pose", "Product pose: MI HAI PRESO")
+                        node.parent=null
+                    }
                 }
 
                 override fun onContextClick(e: MotionEvent, node: Node?) {
