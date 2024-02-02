@@ -1,22 +1,20 @@
 package com.example.camera
 
 import android.content.Context
+import android.content.DialogInterface
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.widget.Button
+import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import okhttp3.Call
-import okhttp3.Callback
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.Response
+import okhttp3.*
 import org.json.JSONException
 import org.json.JSONObject
 import java.io.IOException
-
 
 class ProfileActivity : AppCompatActivity() {
 
@@ -45,20 +43,14 @@ class ProfileActivity : AppCompatActivity() {
 
         // Set up new project button click listener
         newProjectButton.setOnClickListener {
-            // Start ProductActivity when "Start a New Project" button is clicked
-            val intent = Intent(this, ProductActivity::class.java)
-            startActivity(intent)
+            // Show a title input popup when "Start a New Project" button is clicked
+            showTitleInputDialog()
         }
 
         // Set up my projects button click listener
         myProjectsButton.setOnClickListener {
-            // Fetch the anchor ID from your projects (replace "yourAnchorId" with the actual ID)
-            val anchorIdToResolve = "ua-438994c43d17f9234dfb3dcc341c43f2"
-
-            // Start ARActivity for anchor resolution
-            val intent = Intent(this, ARActivity::class.java).apply {
-                putExtra("anchorId", anchorIdToResolve)
-            }
+            // Start ProjectsActivity when "My Projects" button is clicked
+            val intent = Intent(this, ProjectsActivity::class.java)
             startActivity(intent)
         }
 
@@ -72,7 +64,7 @@ class ProfileActivity : AppCompatActivity() {
         // Make a network request to Flask /profile
         // Use an HTTP client library like Retrofit or OkHttp for network requests
 
-        //  User data class with 'username', 'email', 'name', and 'surname' properties
+        // User data class with 'username', 'email', 'name', and 'surname' properties
         val profileUrl = "https://frafortu.pythonanywhere.com/profile"
         // Get the JWT from SharedPreferences
         val sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
@@ -114,5 +106,32 @@ class ProfileActivity : AppCompatActivity() {
                 }
             }
         })
+    }
+
+    private fun showTitleInputDialog() {
+        val builder = AlertDialog.Builder(this)
+        builder.setTitle("Enter Project Title")
+
+        // Set up the input
+        val input = EditText(this)
+        builder.setView(input)
+
+        // Set up the buttons
+        builder.setPositiveButton("OK") { _, _ ->
+            val title = input.text.toString()
+            // Do something with the title, e.g., send it to the server or use it locally
+            Toast.makeText(this, "Project Title: $title", Toast.LENGTH_SHORT).show()
+
+            // Start ARActivity for anchor resolution
+            val intent = Intent(this, ARActivity::class.java).apply {
+                putExtra("projectTitle", title) // Pass the project title to ARActivity
+            }
+            startActivity(intent)
+        }
+
+        builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+
+        // Show the dialog
+        builder.show()
     }
 }

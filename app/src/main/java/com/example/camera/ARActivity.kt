@@ -3,6 +3,7 @@ package com.example.camera
 
 import android.animation.ObjectAnimator
 import android.app.Activity
+import android.content.Context
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -48,6 +49,10 @@ import io.github.sceneview.math.Position
 import io.github.sceneview.node.ModelNode
 import io.github.sceneview.node.Node
 import kotlinx.coroutines.launch
+import okhttp3.*
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import org.json.JSONObject
+import java.io.IOException
 
 private var kmodel="https://sceneview.github.io/assets/models/DamagedHelmet.glb"
 class ARActivity : AppCompatActivity(R.layout.ar_activity) {
@@ -293,6 +298,7 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
         }
         // Check if anchor ID is passed in the intent
         val anchorId = intent.getStringExtra("anchorId")
+        val projectTitle = intent.getStringExtra("projectTitle")
         if (!anchorId.isNullOrBlank()) {
             // Anchor ID is present, resolve the anchor
             b1 = findViewById<Button?>(R.id.hostButton).apply {
@@ -349,6 +355,41 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
                                         Toast.LENGTH_LONG
                                     )
                                     successToast.show()
+                                    val anchorId = cloudAnchorId // Use the actual variable containing the anchor ID
+                                    val projectTitle = intent.getStringExtra("projectTitle")
+
+                                    // Create a JSON object to send to the server
+                                    val requestBody = JSONObject().apply {
+                                        put("anchor_id", anchorId)
+                                        put("project_title", projectTitle)
+                                        put("model", kmodel)
+                                    }
+                                    val sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
+                                    val authToken = sharedPreferences.getString("jwtToken", "")
+
+                                    // Make a POST request to the Flask /anchors endpoint
+                                    val client = OkHttpClient()
+                                    val request = Request.Builder()
+                                        .url("https://frafortu.pythonanywhere.com/project")
+                                        .header("Content-Type", "application/json")
+                                        .header("Authorization", "Bearer $authToken") // Include the JWT in the Authorization header
+                                        .post(RequestBody.create("application/json".toMediaTypeOrNull(), requestBody.toString()))
+                                        .build()
+
+                                    client.newCall(request).enqueue(object : Callback {
+                                        override fun onFailure(call: Call, e: IOException) {
+                                            e.printStackTrace()
+                                            // Handle failure
+                                        }
+
+                                        override fun onResponse(call: Call, response: Response) {
+                                            // Handle the response from the server
+                                            val responseBody = response.body?.string()
+                                            Log.d("Response", responseBody ?: "Response body is null")
+                                            // Parse the JSON response if necessary
+                                        }
+                                    })
+
                                 }
                                 else -> {
                                     Log.d("CloudAnchor", "Cloud anchor hosting failed: $cloudAnchorId")
