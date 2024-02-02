@@ -4,13 +4,17 @@ package com.example.camera
 import android.animation.ObjectAnimator
 import android.app.Activity
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import android.widget.Button
+import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
@@ -22,14 +26,20 @@ import androidx.core.view.isGone
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.google.ar.core.Anchor
+import com.google.ar.core.Anchor.CloudAnchorState
 import com.google.ar.core.Config
+import com.google.ar.core.Session
 import com.google.ar.core.TrackingFailureReason
+import com.google.ar.core.TrackingState
 import dev.romainguy.kotlin.math.Float2
 import io.github.sceneview.ar.ARSceneView
+import io.github.sceneview.ar.arcore.canHostCloudAnchor
 import io.github.sceneview.ar.arcore.createAnchorOrNull
+import io.github.sceneview.ar.arcore.isTracking
 import io.github.sceneview.ar.arcore.isValid
 import io.github.sceneview.ar.getDescription
 import io.github.sceneview.ar.node.AnchorNode
+import io.github.sceneview.ar.node.CloudAnchorNode
 import io.github.sceneview.gesture.GestureDetector
 import io.github.sceneview.gesture.MoveGestureDetector
 import io.github.sceneview.gesture.RotateGestureDetector
@@ -43,17 +53,47 @@ private var kmodel="https://sceneview.github.io/assets/models/DamagedHelmet.glb"
 class ARActivity : AppCompatActivity(R.layout.ar_activity) {
 
     lateinit var b : ImageButton
+    lateinit var b1 : Button
     lateinit var sceneView: ARSceneView
     lateinit var loadingView: View
     lateinit var instructionText: TextView
     lateinit var horiz_hide_show: LinearLayout
     lateinit var button_hide_show : Button
+    private lateinit var lastCloudAnchorNode: Anchor
+
     var vis: Boolean = false
     var isLoading = false
         set(value) {
             field = value
             loadingView.isGone = !value
         }
+    private val handler = Handler(Looper.getMainLooper())
+
+    private val logRunnable = object : Runnable {
+        override fun run() {
+            val session = sceneView.session
+            val frame = sceneView.frame
+
+            if (session != null) {
+                // Log session tracking state
+                Log.d("Estimation", "Is Tracking: ${TrackingState.TRACKING}")
+
+                // Log feature map quality
+                val featureMapQuality = session.estimateFeatureMapQualityForHosting(frame!!.camera.pose)
+                Log.d("Estimation", "Feature Map Quality: $featureMapQuality")
+
+                if (sceneView.frame!!.camera.isTracking && featureMapQuality == Session.FeatureMapQuality.INSUFFICIENT) {
+                    // Log the message if the camera is tracking and feature map quality is insufficient
+                    Log.d("Estimation", "Camera is tracking, but feature map quality is insufficient!")
+                }
+            }
+
+            // Schedule the Runnable to run again after 5 seconds
+            handler.postDelayed(this, 5000)
+        }
+    }
+
+
 
     var anchorNode: AnchorNode? = null
         set(value) {
@@ -91,7 +131,6 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
             fitsSystemWindows = false
         )
 
-
         instructionText = findViewById(R.id.instructionText)
         loadingView = findViewById(R.id.loadingView)
         sceneView = findViewById<ARSceneView?>(R.id.sceneView).apply {
@@ -102,7 +141,10 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
                     else -> Config.DepthMode.DISABLED
                 }
                 config.instantPlacementMode = Config.InstantPlacementMode.DISABLED
-                config.lightEstimationMode = Config.LightEstimationMode.ENVIRONMENTAL_HDR
+                config.lightEstimationMode = Config.LightEstimationMode.AMBIENT_INTENSITY
+                config.cloudAnchorMode= Config.CloudAnchorMode.ENABLED
+                //config.geospatialMode = Config.GeospatialMode.ENABLED
+                config.planeFindingMode = Config.PlaneFindingMode.HORIZONTAL
             }
             onSessionUpdated = { _, frame ->
                 /* if (anchorNode == null) {
@@ -112,8 +154,10 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
                             addAnchorNode(plane.createAnchor(plane.centerPose))
                         }
                 }*/
-
             }
+
+
+
             onTrackingFailureChanged = { reason ->
                 this@ARActivity.trackingFailureReason = reason
             }
@@ -161,7 +205,10 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
                         }?.createAnchorOrNull()?.let{
                                 anchor ->
                             addAnchorNode(anchor)
+                            lastCloudAnchorNode= anchor
+
                         }
+
                     }
                 }
 
@@ -174,6 +221,7 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
                     {
                         Log.d("Pose", "Product pose: MI HAI PRESO")
                         node.parent=null
+                        node.destroy()
                     }
                 }
 
@@ -243,6 +291,80 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
 
             }
         }
+        // Check if anchor ID is passed in the intent
+        val anchorId = intent.getStringExtra("anchorId")
+        if (!anchorId.isNullOrBlank()) {
+            // Anchor ID is present, resolve the anchor
+            b1 = findViewById<Button?>(R.id.hostButton).apply {
+                text = "Resolve"
+                setOnClickListener {
+                    val session = sceneView.session ?: return@setOnClickListener
+
+                    // Resolve the anchor using the anchorId
+                    val resolvedAnchor = session.resolveCloudAnchor(anchorId)
+                    if (resolvedAnchor != null) {
+                        // Anchor resolved successfully, add anchor node
+                        addAnchorNode(resolvedAnchor)
+                    } else {
+                        // Handle anchor resolution failure
+                        val resolutionFailureToast = Toast.makeText(
+                            context,
+                            "Failed to resolve anchor",
+                            Toast.LENGTH_LONG
+                        )
+                        resolutionFailureToast.show()
+                        Log.d("CloudAnchor", "Failed to resolve anchor: $anchorId")
+                    }
+                }
+
+            }
+        } else {
+            // No anchor ID passed, proceed with hosting logic
+            b1 = findViewById<Button?>(R.id.hostButton).apply {
+                setOnClickListener {
+                    val session = sceneView.session ?: return@setOnClickListener
+                    val frame = sceneView.frame ?: return@setOnClickListener
+
+                    if (sceneView.session?.estimateFeatureMapQualityForHosting(frame.camera.pose) == Session.FeatureMapQuality.INSUFFICIENT) {
+                        val insufficientVisualDataToast = Toast.makeText(
+                            context,
+                            R.string.insufficient_visual_data,
+                            Toast.LENGTH_LONG
+                        )
+                        insufficientVisualDataToast.show()
+                        Log.d("CloudAnchor", "Insufficient visual data for hosting")
+                        return@setOnClickListener
+                    }
+
+                    val anchor = lastCloudAnchorNode
+                    sceneView.addChildNode(CloudAnchorNode(sceneView.engine, anchor).apply {
+                        host(session) { cloudAnchorId, state ->
+                            Log.d("CloudAnchor", "STATE: $state, CloudAnchorId: $cloudAnchorId")
+                            when (state) {
+                                CloudAnchorState.SUCCESS -> {
+                                    Log.d("CloudAnchor", "Cloud anchor hosted successfully: $cloudAnchorId")
+                                    val successToast = Toast.makeText(
+                                        context,
+                                        "Cloud anchor hosted successfully: $cloudAnchorId",
+                                        Toast.LENGTH_LONG
+                                    )
+                                    successToast.show()
+                                }
+                                else -> {
+                                    Log.d("CloudAnchor", "Cloud anchor hosting failed: $cloudAnchorId")
+                                    val failureToast = Toast.makeText(
+                                        context,
+                                        "Cloud anchor hosting failed: $cloudAnchorId",
+                                        Toast.LENGTH_LONG
+                                    )
+                                    failureToast.show()
+                                }
+                            }
+                        }
+                    })
+                }
+            }
+        }
 
 
         b = findViewById<ImageButton?>(R.id.button1).apply { setOnClickListener{kmodel="https://firebasestorage.googleapis.com/v0/b/mac-proj-5f6eb.appspot.com/o/black_sofa.glb?alt=media&token=e1368472-f80b-491d-ad78-2854286c95ea"}  }
@@ -293,7 +415,7 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
                                 ModelNode(
                                     modelInstance = modelInstance,
                                     // Scale to fit in a 0.5 meters cube
-                                    //  scaleToUnits = 0.5f,
+                                    scaleToUnits = 0.5f,
                                     // Bottom origin instead of center so the model base is on floor
                                     centerOrigin = Position(y = -0.5f)
                                 ).apply {

@@ -52,8 +52,14 @@ class ProfileActivity : AppCompatActivity() {
 
         // Set up my projects button click listener
         myProjectsButton.setOnClickListener {
-            // Display a toast with "TBD" when "My Projects" button is clicked
-            Toast.makeText(this, "TBD", Toast.LENGTH_SHORT).show()
+            // Fetch the anchor ID from your projects (replace "yourAnchorId" with the actual ID)
+            val anchorIdToResolve = "ua-438994c43d17f9234dfb3dcc341c43f2"
+
+            // Start ARActivity for anchor resolution
+            val intent = Intent(this, ARActivity::class.java).apply {
+                putExtra("anchorId", anchorIdToResolve)
+            }
+            startActivity(intent)
         }
 
         // Set up logout button click listener

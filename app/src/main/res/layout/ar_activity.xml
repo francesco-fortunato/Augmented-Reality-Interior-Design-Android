@@ -37,6 +37,16 @@
             app:trackColor="#3FFFFFFF" />
     </FrameLayout>
 
+    <Button
+        android:id="@+id/hostButton"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="HOST"
+        tools:layout_editor_absoluteX="25dp"
+        tools:layout_editor_absoluteY="156dp"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/instructionText" />
 
     <Button
         android:id="@+id/btn"
@@ -146,7 +156,7 @@
         android:id="@+id/toolbar"
         android:layout_width="0dp"
         android:layout_height="?actionBarSize"
-        android:layout_marginTop="4dp"
+        android:layout_marginTop="16dp"
         android:fitsSystemWindows="true"
         android:minHeight="?attr/actionBarSize"
         android:theme="@style/Theme.SceneViewSample.Toolbar"
