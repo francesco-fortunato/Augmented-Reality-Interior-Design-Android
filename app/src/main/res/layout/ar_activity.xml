@@ -41,7 +41,7 @@
         android:id="@+id/hostButton"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="HOST"
+        android:text="SAVE PROJECT"
         tools:layout_editor_absoluteX="25dp"
         tools:layout_editor_absoluteY="156dp"
         app:layout_constraintLeft_toLeftOf="parent"

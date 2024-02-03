@@ -306,7 +306,7 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
         if (!anchorIdList.isNullOrEmpty()) {
             // Anchor ID list is present, iterate over the list and resolve each anchor
             b1 = findViewById<Button?>(R.id.hostButton).apply {
-                text = "Resolve"
+                text = "LOAD PROJECT"
                 setOnClickListener {
                     val session = sceneView.session ?: return@setOnClickListener
 
@@ -339,8 +339,15 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
             // No anchor ID passed, proceed with hosting logic
             b1 = findViewById<Button?>(R.id.hostButton).apply {
                 setOnClickListener {
+
+                    // Disable the button during the onClickListener execution
+                    isClickable = false
+                    isEnabled = false
+
                     val session = sceneView.session ?: return@setOnClickListener
                     val frame = sceneView.frame ?: return@setOnClickListener
+
+
 
                     if (sceneView.session?.estimateFeatureMapQualityForHosting(frame.camera.pose) == Session.FeatureMapQuality.INSUFFICIENT) {
                         val insufficientVisualDataToast = Toast.makeText(
@@ -350,6 +357,10 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
                         )
                         insufficientVisualDataToast.show()
                         Log.d("CloudAnchor", "Insufficient visual data for hosting")
+                        // Enable the button after showing the toast
+                        isClickable = true
+                        isEnabled = true
+
                         return@setOnClickListener
                     }
 
@@ -411,6 +422,32 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
                                                     // Handle the response from the server
                                                     val responseBody = response.body?.string()
                                                     Log.d("Response", responseBody ?: "Response body is null")
+
+                                                    try {
+                                                        val jsonResponse = JSONObject(responseBody)
+                                                        val success = jsonResponse.optBoolean("success", false)
+
+                                                        if (success) {
+                                                            // Show a success Toast
+                                                            runOnUiThread {
+                                                                Toast.makeText(context, "Operation successful", Toast.LENGTH_SHORT).show()
+                                                            }
+                                                        } else {
+                                                            // Show a failure Toast or handle the failure case as needed
+                                                            runOnUiThread {
+                                                                Toast.makeText(context, "Operation failed", Toast.LENGTH_SHORT).show()
+                                                            }
+                                                        }
+                                                    } catch (e: JSONException) {
+                                                        e.printStackTrace()
+                                                        // Handle JSON parsing error
+                                                    } finally {
+                                                        // Enable the button after processing the response
+                                                        runOnUiThread {
+                                                            isClickable = true
+                                                            isEnabled = true
+                                                        }
+                                                    }
                                                 }
                                             })
                                         }
@@ -423,6 +460,11 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
                                             Toast.LENGTH_LONG
                                         )
                                         failureToast.show()
+                                        // Enable the button after showing the toast
+                                        runOnUiThread {
+                                            isClickable = true
+                                            isEnabled = true
+                                        }
                                     }
                                 }
                             }
