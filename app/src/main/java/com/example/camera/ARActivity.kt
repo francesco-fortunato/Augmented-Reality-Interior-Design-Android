@@ -228,6 +228,15 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
                     if(node!=null)
                     {
                         Log.d("Pose", "Product pose: MI HAI PRESO")
+                        Log.d("Node", "Node= $node")
+                        val dad: AnchorNode = node.parent as AnchorNode
+                        val dadanchor : Anchor = dad.anchor
+                        Log.d("DAD", "DAD= $dad")
+                        Log.d("DAD", "DAD ANCHOR= $dadanchor")
+
+                        anchorsList.removeIf { (anchor, _) ->
+                            anchor.toString() == dadanchor.toString()
+                        }
                         node.parent=null
                         node.destroy()
                     }
@@ -513,10 +522,12 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
     fun addAnchorNode(anchor: Anchor) {
         val selectedModel = kmodel  // Save the current selected model
 
+
         sceneView.addChildNode(
             AnchorNode(sceneView.engine, anchor)
                 .apply {
                     isEditable = true
+
                     lifecycleScope.launch {
                         isLoading = true
                         sceneView.modelLoader.loadModelInstance(
@@ -537,6 +548,7 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
                         isLoading = false
                     }
                     anchorNode = this
+
                 }
         )
 
