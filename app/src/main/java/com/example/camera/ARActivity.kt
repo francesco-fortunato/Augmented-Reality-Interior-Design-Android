@@ -297,9 +297,13 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
             }
         }
         // Check if anchor ID is passed in the intent
-        val anchorId = intent.getStringExtra("anchorId")
+        val anchorId = intent.getStringExtra("anchor_id")
+        val model = intent.getStringExtra("model")
         val projectTitle = intent.getStringExtra("projectTitle")
         if (!anchorId.isNullOrBlank()) {
+            if (model != null) {
+                kmodel = model
+            }
             // Anchor ID is present, resolve the anchor
             b1 = findViewById<Button?>(R.id.hostButton).apply {
                 text = "Resolve"

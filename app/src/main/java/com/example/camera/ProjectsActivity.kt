@@ -1,6 +1,7 @@
 package com.example.camera
 
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.widget.Button
@@ -32,7 +33,7 @@ class ProjectsActivity : AppCompatActivity() {
         projectsAdapter = ProjectsAdapter { projectName ->
             // Handle click event for the project
             Log.d("ProjectsActivity", "Clicked on project: $projectName")
-            // Add your logic here, such as navigating to another activity with project details
+            fetchProjectDetails(projectName)
         }
 
         recyclerView.adapter = projectsAdapter
@@ -47,6 +48,93 @@ class ProjectsActivity : AppCompatActivity() {
             finish()
         }
     }
+
+    private fun fetchProjectDetails(projectName: String) {
+        // Make a network request to Flask /project/{project_name}
+        // Use an HTTP client library like Retrofit or OkHttp for network requests
+
+        val projectDetailsUrl = "https://frafortu.pythonanywhere.com/project/$projectName"
+        // Get the JWT from SharedPreferences
+        val sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
+        val authToken = sharedPreferences.getString("jwtToken", "")
+
+        // Make a GET request to fetch project details
+        val client = OkHttpClient()
+        val request = Request.Builder()
+            .url(projectDetailsUrl)
+            .header("Content-Type", "application/json")
+            .header("Authorization", "Bearer $authToken") // Include the JWT in the Authorization header
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                e.printStackTrace()
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                val responseBody = response.body?.string()
+                Log.d("Response", responseBody ?: "Response body is null")
+
+                // Parse the JSON response to get project details information
+                try {
+                    val jsonResponse = JSONObject(responseBody)
+
+                    if (jsonResponse.getBoolean("success")) {
+                        // Extract relevant information from the JSON response
+                        val projectId = jsonResponse.getInt("project_id")
+                        val projectTitle = jsonResponse.getString("project_title")
+
+                        // Check if the JSON response contains anchor details
+                        if (jsonResponse.has("anchors") && jsonResponse.get("anchors") is JSONArray) {
+                            val anchorsArray = jsonResponse.getJSONArray("anchors")
+
+                            // Handle multiple anchors
+                            for (i in 0 until anchorsArray.length()) {
+                                val anchorObject = anchorsArray.getJSONObject(i)
+                                val anchorId = anchorObject.getString("anchor_id")
+                                val model = anchorObject.getString("model")
+
+                                // Start ARActivity and pass the relevant data
+                                startARActivity(projectId, projectTitle, anchorId, model)
+                            }
+                        } else {
+                            // Handle the case where no anchor details are present
+                            Log.e("ProjectsActivity", "Invalid format: 'anchors' key not found or not a JSONArray")
+                        }
+                    } else {
+                        Log.e("ProjectsActivity", "Request was not successful")
+                    }
+                } catch (e: JSONException) {
+                    e.printStackTrace()
+                }
+            }
+
+        })
+    }
+
+
+    private fun startARActivity(projectId: Int, projectTitle: String, anchorId: String, model: String) {
+        // Create an Intent to start ARActivity
+        val arIntent = Intent(this, ARActivity::class.java)
+
+        // Log the data before starting the ARActivity
+        Log.d("IntentData", "Project ID: $projectId")
+        Log.d("IntentData", "Project Title: $projectTitle")
+        Log.d("IntentData", "Anchor ID: $anchorId")
+        Log.d("IntentData", "Model: $model")
+
+
+        // Pass relevant data as extras to ARActivity
+        arIntent.putExtra("project_id", projectId)
+        arIntent.putExtra("project_title", projectTitle)
+        arIntent.putExtra("anchor_id", anchorId)
+        arIntent.putExtra("model", model)
+
+        // Start ARActivity
+        startActivity(arIntent)
+    }
+
+
 
     private fun fetchUserProjects() {
         // Make a network request to Flask /projects
