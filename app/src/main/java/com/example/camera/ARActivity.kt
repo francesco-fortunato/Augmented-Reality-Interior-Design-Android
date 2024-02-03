@@ -51,6 +51,7 @@ import io.github.sceneview.node.Node
 import kotlinx.coroutines.launch
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import org.json.JSONException
 import org.json.JSONObject
 import java.io.IOException
 
@@ -65,6 +66,8 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
     lateinit var horiz_hide_show: LinearLayout
     lateinit var button_hide_show : Button
     private lateinit var lastCloudAnchorNode: Anchor
+
+    private val anchorsList = mutableListOf<Pair<Anchor, String>>()
 
     var vis: Boolean = false
     var isLoading = false
@@ -297,36 +300,40 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
             }
         }
         // Check if anchor ID is passed in the intent
-        val anchorId = intent.getStringExtra("anchor_id")
-        val model = intent.getStringExtra("model")
         val projectTitle = intent.getStringExtra("projectTitle")
-        if (!anchorId.isNullOrBlank()) {
-            if (model != null) {
-                kmodel = model
-            }
-            // Anchor ID is present, resolve the anchor
+        val anchorIdList = intent.getSerializableExtra("anchor_id_list") as? ArrayList<HashMap<String, String>>
+
+        if (!anchorIdList.isNullOrEmpty()) {
+            // Anchor ID list is present, iterate over the list and resolve each anchor
             b1 = findViewById<Button?>(R.id.hostButton).apply {
                 text = "Resolve"
                 setOnClickListener {
                     val session = sceneView.session ?: return@setOnClickListener
 
-                    // Resolve the anchor using the anchorId
-                    val resolvedAnchor = session.resolveCloudAnchor(anchorId)
-                    if (resolvedAnchor != null) {
-                        // Anchor resolved successfully, add anchor node
-                        addAnchorNode(resolvedAnchor)
-                    } else {
-                        // Handle anchor resolution failure
-                        val resolutionFailureToast = Toast.makeText(
-                            context,
-                            "Failed to resolve anchor",
-                            Toast.LENGTH_LONG
-                        )
-                        resolutionFailureToast.show()
-                        Log.d("CloudAnchor", "Failed to resolve anchor: $anchorId")
+                    for (anchorData in anchorIdList) {
+                        val anchorId = anchorData["anchor_id"]
+                        kmodel = anchorData["model"].toString()
+
+                        if (!anchorId.isNullOrBlank()) {
+                            // Resolve the anchor using the anchorId
+                            val resolvedAnchor = session.resolveCloudAnchor(anchorId)
+                            if (resolvedAnchor != null) {
+                                // Anchor resolved successfully, add anchor node
+                                addAnchorNode(resolvedAnchor)
+                                Log.d("Resolve", "Resolved $anchorId $kmodel $projectTitle")
+                            } else {
+                                // Handle anchor resolution failure
+                                val resolutionFailureToast = Toast.makeText(
+                                    context,
+                                    "Failed to resolve anchor: $anchorId",
+                                    Toast.LENGTH_LONG
+                                )
+                                resolutionFailureToast.show()
+                                Log.d("CloudAnchor", "Failed to resolve anchor: $anchorId")
+                            }
+                        }
                     }
                 }
-
             }
         } else {
             // No anchor ID passed, proceed with hosting logic
@@ -346,67 +353,82 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
                         return@setOnClickListener
                     }
 
-                    val anchor = lastCloudAnchorNode
-                    sceneView.addChildNode(CloudAnchorNode(sceneView.engine, anchor).apply {
-                        host(session) { cloudAnchorId, state ->
-                            Log.d("CloudAnchor", "STATE: $state, CloudAnchorId: $cloudAnchorId")
-                            when (state) {
-                                CloudAnchorState.SUCCESS -> {
-                                    Log.d("CloudAnchor", "Cloud anchor hosted successfully: $cloudAnchorId")
-                                    val successToast = Toast.makeText(
-                                        context,
-                                        "Cloud anchor hosted successfully: $cloudAnchorId",
-                                        Toast.LENGTH_LONG
-                                    )
-                                    successToast.show()
-                                    val anchorId = cloudAnchorId // Use the actual variable containing the anchor ID
-                                    val projectTitle = intent.getStringExtra("projectTitle")
+                    val anchorDataList = mutableListOf<JSONObject>()
 
-                                    // Create a JSON object to send to the server
-                                    val requestBody = JSONObject().apply {
-                                        put("anchor_id", anchorId)
-                                        put("project_title", projectTitle)
-                                        put("model", kmodel)
+                    // Iterate over anchorsList
+                    for ((anchor, selectedModel) in anchorsList) {
+                        val session = sceneView.session ?: continue
+
+                        sceneView.addChildNode(CloudAnchorNode(sceneView.engine, anchor).apply {
+                            host(session) { cloudAnchorId, state ->
+                                Log.d("CloudAnchor", "STATE: $state, CloudAnchorId: $cloudAnchorId")
+                                when (state) {
+                                    CloudAnchorState.SUCCESS -> {
+                                        Log.d("CloudAnchor", "Cloud anchor hosted successfully: $cloudAnchorId")
+
+                                        // Create a JSON object for the anchor data
+                                        val anchorData = JSONObject().apply {
+                                            put("anchor_id", cloudAnchorId)
+                                            put("model", selectedModel)
+                                        }
+
+                                        // Add the anchor data to the list
+                                        anchorDataList.add(anchorData)
+
+                                        Log.d("Actual Anchor Data List", "$anchorDataList")
+
+
+                                        // Check if all anchors are hosted successfully
+                                        if (anchorDataList.size == anchorsList.size) {
+                                            // All anchors hosted, send the data to the server
+                                            val projectTitle = intent.getStringExtra("projectTitle")
+
+                                            // Create a JSON object to send to the server
+                                            val requestBody = JSONObject().apply {
+                                                put("anchors", anchorDataList)
+                                                put("project_title", projectTitle)
+                                            }
+
+                                            val sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
+                                            val authToken = sharedPreferences.getString("jwtToken", "")
+
+                                            // Make a POST request to the Flask /anchors endpoint
+                                            val client = OkHttpClient()
+                                            val request = Request.Builder()
+                                                .url("https://frafortu.pythonanywhere.com/project")
+                                                .header("Content-Type", "application/json")
+                                                .header("Authorization", "Bearer $authToken") // Include the JWT in the Authorization header
+                                                .post(RequestBody.create("application/json".toMediaTypeOrNull(), requestBody.toString()))
+                                                .build()
+
+                                            client.newCall(request).enqueue(object : Callback {
+                                                override fun onFailure(call: Call, e: IOException) {
+                                                    e.printStackTrace()
+                                                    // Handle failure
+                                                }
+
+                                                override fun onResponse(call: Call, response: Response) {
+                                                    // Handle the response from the server
+                                                    val responseBody = response.body?.string()
+                                                    Log.d("Response", responseBody ?: "Response body is null")
+                                                }
+                                            })
+                                        }
                                     }
-                                    val sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
-                                    val authToken = sharedPreferences.getString("jwtToken", "")
-
-                                    // Make a POST request to the Flask /anchors endpoint
-                                    val client = OkHttpClient()
-                                    val request = Request.Builder()
-                                        .url("https://frafortu.pythonanywhere.com/project")
-                                        .header("Content-Type", "application/json")
-                                        .header("Authorization", "Bearer $authToken") // Include the JWT in the Authorization header
-                                        .post(RequestBody.create("application/json".toMediaTypeOrNull(), requestBody.toString()))
-                                        .build()
-
-                                    client.newCall(request).enqueue(object : Callback {
-                                        override fun onFailure(call: Call, e: IOException) {
-                                            e.printStackTrace()
-                                            // Handle failure
-                                        }
-
-                                        override fun onResponse(call: Call, response: Response) {
-                                            // Handle the response from the server
-                                            val responseBody = response.body?.string()
-                                            Log.d("Response", responseBody ?: "Response body is null")
-                                            // Parse the JSON response if necessary
-                                        }
-                                    })
-
-                                }
-                                else -> {
-                                    Log.d("CloudAnchor", "Cloud anchor hosting failed: $cloudAnchorId")
-                                    val failureToast = Toast.makeText(
-                                        context,
-                                        "Cloud anchor hosting failed: $cloudAnchorId",
-                                        Toast.LENGTH_LONG
-                                    )
-                                    failureToast.show()
+                                    else -> {
+                                        Log.d("CloudAnchor", "Cloud anchor hosting failed: $cloudAnchorId")
+                                        val failureToast = Toast.makeText(
+                                            context,
+                                            "Cloud anchor hosting failed: $cloudAnchorId",
+                                            Toast.LENGTH_LONG
+                                        )
+                                        failureToast.show()
+                                    }
                                 }
                             }
-                        }
-                    })
+                        })
+                    }
+
                 }
             }
         }
@@ -447,6 +469,8 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
     }
 
     fun addAnchorNode(anchor: Anchor) {
+        val selectedModel = kmodel  // Save the current selected model
+
         sceneView.addChildNode(
             AnchorNode(sceneView.engine, anchor)
                 .apply {
@@ -454,14 +478,14 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
                     lifecycleScope.launch {
                         isLoading = true
                         sceneView.modelLoader.loadModelInstance(
-                            kmodel
+                            selectedModel
                         )?.let { modelInstance ->
                             addChildNode(
                                 ModelNode(
                                     modelInstance = modelInstance,
                                     // Scale to fit in a 0.5 meters cube
                                     scaleToUnits = 0.5f,
-                                    // Bottom origin instead of center so the model base is on floor
+                                    // Bottom origin instead of center so the model base is on the floor
                                     centerOrigin = Position(y = -0.5f)
                                 ).apply {
                                     isEditable = true
@@ -473,6 +497,13 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
                     anchorNode = this
                 }
         )
+
+        // Add the anchor and the selected model to the list
+        val newAnchorPair = Pair(anchor, selectedModel)
+        anchorsList.add(newAnchorPair)
+
+        // Log the contents of the anchorsList
+        Log.d("AnchorsList", "Added new anchor: $newAnchorPair. AnchorsList: $anchorsList")
     }
 
     fun Fragment.setFullScreen(

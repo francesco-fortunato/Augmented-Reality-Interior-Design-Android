@@ -5,7 +5,6 @@ import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.widget.Button
-import android.widget.LinearLayout
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -87,25 +86,26 @@ class ProjectsActivity : AppCompatActivity() {
                         // Check if the JSON response contains anchor details
                         if (jsonResponse.has("anchors") && jsonResponse.get("anchors") is JSONArray) {
                             val anchorsArray = jsonResponse.getJSONArray("anchors")
+                            val anchorsList = mutableListOf<Pair<String, String>>() // Pair of anchorId and model
 
-                            // Handle multiple anchors
+                            // Iterate through the anchorsArray and add each anchor to the list
                             for (i in 0 until anchorsArray.length()) {
                                 val anchorObject = anchorsArray.getJSONObject(i)
                                 val anchorId = anchorObject.getString("anchor_id")
                                 val model = anchorObject.getString("model")
-
-                                // Start ARActivity and pass the relevant data
-                                startARActivity(projectId, projectTitle, anchorId, model)
+                                anchorsList.add(Pair(anchorId, model))
                             }
+
+                            // Start ARActivity and pass the relevant data at the end
+                            startARActivity(projectId, projectTitle, anchorsList)
                         } else {
                             // Handle the case where no anchor details are present
                             Log.e("ProjectsActivity", "Invalid format: 'anchors' key not found or not a JSONArray")
                         }
-                    } else {
-                        Log.e("ProjectsActivity", "Request was not successful")
                     }
                 } catch (e: JSONException) {
                     e.printStackTrace()
+                    // Handle JSON parsing exception
                 }
             }
 
@@ -113,22 +113,24 @@ class ProjectsActivity : AppCompatActivity() {
     }
 
 
-    private fun startARActivity(projectId: Int, projectTitle: String, anchorId: String, model: String) {
+    private fun startARActivity(projectId: Int, projectTitle: String, anchorIdList: List<Pair<String, String>>) {
+        // Convert the list of pairs to a format that can be easily serialized
+        val anchorIdArrayList = ArrayList<HashMap<String, String>>()
+
+        for (pair in anchorIdList) {
+            val hashMap = hashMapOf<String, String>()
+            hashMap["anchor_id"] = pair.first
+            hashMap["model"] = pair.second
+            anchorIdArrayList.add(hashMap)
+        }
+
         // Create an Intent to start ARActivity
         val arIntent = Intent(this, ARActivity::class.java)
-
-        // Log the data before starting the ARActivity
-        Log.d("IntentData", "Project ID: $projectId")
-        Log.d("IntentData", "Project Title: $projectTitle")
-        Log.d("IntentData", "Anchor ID: $anchorId")
-        Log.d("IntentData", "Model: $model")
-
 
         // Pass relevant data as extras to ARActivity
         arIntent.putExtra("project_id", projectId)
         arIntent.putExtra("project_title", projectTitle)
-        arIntent.putExtra("anchor_id", anchorId)
-        arIntent.putExtra("model", model)
+        arIntent.putExtra("anchor_id_list", anchorIdArrayList)
 
         // Start ARActivity
         startActivity(arIntent)
