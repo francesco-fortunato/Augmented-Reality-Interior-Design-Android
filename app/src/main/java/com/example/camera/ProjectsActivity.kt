@@ -4,8 +4,10 @@ import android.content.Context
 import android.os.Bundle
 import android.util.Log
 import android.widget.Button
-import android.widget.TextView
+import android.widget.LinearLayout
 import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import okhttp3.*
 import org.json.JSONArray
 import org.json.JSONException
@@ -14,7 +16,8 @@ import java.io.IOException
 
 class ProjectsActivity : AppCompatActivity() {
 
-    private lateinit var projectsTextView: TextView
+    private lateinit var projectsAdapter: ProjectsAdapter
+    private lateinit var recyclerView: RecyclerView
     private lateinit var backToProfileButton: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -22,8 +25,18 @@ class ProjectsActivity : AppCompatActivity() {
         setContentView(R.layout.activity_projects)
 
         // Initialize views
-        projectsTextView = findViewById(R.id.textViewProjects)
+        recyclerView = findViewById(R.id.recyclerViewProjects)
         backToProfileButton = findViewById(R.id.btnBackToProfile)
+
+        // Set up RecyclerView and Adapter
+        projectsAdapter = ProjectsAdapter { projectName ->
+            // Handle click event for the project
+            Log.d("ProjectsActivity", "Clicked on project: $projectName")
+            // Add your logic here, such as navigating to another activity with project details
+        }
+
+        recyclerView.adapter = projectsAdapter
+        recyclerView.layoutManager = LinearLayoutManager(this)
 
         // Fetch user projects and update UI
         fetchUserProjects()
@@ -69,21 +82,17 @@ class ProjectsActivity : AppCompatActivity() {
                         // If the "success" key is true, check if "projects" is a JSON array
                         if (jsonResponse.has("projects") && jsonResponse.get("projects") is JSONArray) {
                             val jsonArray = jsonResponse.getJSONArray("projects")
-                            val projectsList = mutableListOf<String>()
 
+                            // Update RecyclerView adapter with projects data
+                            val projectsList = mutableListOf<String>()
                             for (i in 0 until jsonArray.length()) {
                                 val projectName = jsonArray.getJSONObject(i).getString("project_name")
                                 projectsList.add(projectName)
                             }
 
-                            // Update UI with user projects information
                             runOnUiThread {
-                                if (projectsList.isNotEmpty()) {
-                                    val projectsText = projectsList.joinToString(separator = "\n")
-                                    projectsTextView.text = projectsText
-                                } else {
-                                    projectsTextView.text = "No projects available."
-                                }
+                                // Ensure UI updates are done on the main thread
+                                projectsAdapter.updateData(projectsList)
                             }
                         } else {
                             Log.e("ProjectsActivity", "Invalid format: 'projects' key not found or not a JSONArray")
