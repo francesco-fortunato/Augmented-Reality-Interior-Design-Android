@@ -33,14 +33,17 @@ import com.google.ar.core.Session
 import com.google.ar.core.TrackingFailureReason
 import com.google.ar.core.TrackingState
 import dev.romainguy.kotlin.math.Float2
+import dev.romainguy.kotlin.math.Float3
 import io.github.sceneview.ar.ARSceneView
 import io.github.sceneview.ar.arcore.canHostCloudAnchor
 import io.github.sceneview.ar.arcore.createAnchorOrNull
 import io.github.sceneview.ar.arcore.isTracking
 import io.github.sceneview.ar.arcore.isValid
 import io.github.sceneview.ar.getDescription
+import io.github.sceneview.ar.localScale
 import io.github.sceneview.ar.node.AnchorNode
 import io.github.sceneview.ar.node.CloudAnchorNode
+import io.github.sceneview.collision.Vector3
 import io.github.sceneview.gesture.GestureDetector
 import io.github.sceneview.gesture.MoveGestureDetector
 import io.github.sceneview.gesture.RotateGestureDetector
@@ -66,6 +69,8 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
     lateinit var horiz_hide_show: LinearLayout
     lateinit var button_hide_show : Button
     private lateinit var lastCloudAnchorNode: Anchor
+    private var currentScaleFactor = 1.0f
+
 
     private val anchorsList = mutableListOf<Pair<Anchor, String>>()
 
@@ -75,33 +80,6 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
             field = value
             loadingView.isGone = !value
         }
-    private val handler = Handler(Looper.getMainLooper())
-
-    private val logRunnable = object : Runnable {
-        override fun run() {
-            val session = sceneView.session
-            val frame = sceneView.frame
-
-            if (session != null) {
-                // Log session tracking state
-                Log.d("Estimation", "Is Tracking: ${TrackingState.TRACKING}")
-
-                // Log feature map quality
-                val featureMapQuality = session.estimateFeatureMapQualityForHosting(frame!!.camera.pose)
-                Log.d("Estimation", "Feature Map Quality: $featureMapQuality")
-
-                if (sceneView.frame!!.camera.isTracking && featureMapQuality == Session.FeatureMapQuality.INSUFFICIENT) {
-                    // Log the message if the camera is tracking and feature map quality is insufficient
-                    Log.d("Estimation", "Camera is tracking, but feature map quality is insufficient!")
-                }
-            }
-
-            // Schedule the Runnable to run again after 5 seconds
-            handler.postDelayed(this, 5000)
-        }
-    }
-
-
 
     var anchorNode: AnchorNode? = null
         set(value) {
@@ -295,9 +273,23 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
                 }
 
                 override fun onScale(detector: ScaleGestureDetector, e: MotionEvent, node: Node?) {
+                    // Get the scale factor from the ScaleGestureDetector
+                    val scaleFactor = detector.scaleFactor
 
+                    // Reduce sensitivity by multiplying scaleFactor by 0.5
+                    val adjustedScaleFactor = scaleFactor * 0.7f
+
+                    // Update the current scale factor based on the zoom level
+                    currentScaleFactor *= adjustedScaleFactor
+
+                    // Limit the scale factor to prevent excessive scaling
+                    val minScaleFactor = 0.3f
+                    val maxScaleFactor = 2.0f
+                    currentScaleFactor = currentScaleFactor.coerceIn(minScaleFactor, maxScaleFactor)
+
+                    // Apply the adjusted scale factor to the node
+                    node?.scale = Float3(currentScaleFactor, currentScaleFactor, currentScaleFactor)
                 }
-
                 override fun onScaleEnd(
                     detector: ScaleGestureDetector,
                     e: MotionEvent,
