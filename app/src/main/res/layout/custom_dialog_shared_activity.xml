@@ -51,18 +51,6 @@
             android:layout_marginBottom="20dp"/>
 
         <Button
-            android:id="@+id/buttonShared"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Share"
-            android:textColor="@android:color/white"
-            android:background="@drawable/button_background"
-            android:layout_marginStart="8dp"
-            android:layout_marginEnd="8dp"
-            android:layout_marginBottom="20dp"/>
-
-        <Button
             android:id="@+id/buttonDelete"
             android:layout_width="0dp"
             android:layout_height="wrap_content"

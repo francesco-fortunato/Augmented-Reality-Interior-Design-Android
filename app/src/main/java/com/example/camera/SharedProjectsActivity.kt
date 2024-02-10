@@ -58,7 +58,7 @@ class SharedProjectsActivity : AppCompatActivity() {
     private fun showTitleInputDialog(projectId: Int, projectTitle: String, anchorIdList: List<Pair<String, String>>) {
         // Inflate the custom dialog layout
         val imglist = mutableListOf<Int>()
-        val dialogView = layoutInflater.inflate(R.layout.custom_dialog_project_activity, null)
+        val dialogView = layoutInflater.inflate(R.layout.custom_dialog_shared_activity, null)
 
         // Initialize AlertDialog builder with the custom layout
         val builder = AlertDialog.Builder(this)
@@ -99,8 +99,10 @@ class SharedProjectsActivity : AppCompatActivity() {
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             )
-            layoutParams.setMargins(10, 0, 10, 0)
+            layoutParams.setMargins(5, 0, 5, 0)
             imageView.layoutParams = layoutParams
+            layoutParams.width=500
+            layoutParams.height=500
             horizontalLayout.addView(imageView)
         }
 
