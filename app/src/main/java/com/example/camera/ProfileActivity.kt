@@ -1,7 +1,6 @@
 package com.example.camera
 
 import android.content.Context
-import android.content.DialogInterface
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -24,12 +23,21 @@ class ProfileActivity : AppCompatActivity() {
     private lateinit var nameSurnameTextView: TextView
     private lateinit var newProjectButton: Button
     private lateinit var myProjectsButton: Button
+    private lateinit var SharedProjectsButton: Button
+    private lateinit var ListObjectsButton: Button
     private lateinit var logoutButton: Button
     private lateinit var projectsList: MutableList<String>
+    private lateinit var username : String
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_profile)
+
+        // Retrieve user profile data from intent extras
+        username = intent.getStringExtra("username").toString()
+        val email = intent.getStringExtra("email")
+        val name = intent.getStringExtra("name")
+        val surname = intent.getStringExtra("surname")
 
         // Initialize views
         usernameTextView = findViewById(R.id.textViewUsername)
@@ -37,11 +45,14 @@ class ProfileActivity : AppCompatActivity() {
         nameSurnameTextView = findViewById(R.id.textViewNameSurname)
         logoutButton = findViewById(R.id.btnLogout)
 
-        // Fetch user profile and update UI
-        fetchUserProfile()
+        usernameTextView.text = "Time to build, $name"
+        emailTextView.text = "Email: $email"
+        nameSurnameTextView.text = "username: $username"
 
         newProjectButton = findViewById(R.id.btnNewProject)
         myProjectsButton = findViewById(R.id.btnMyProjects)
+        SharedProjectsButton = findViewById(R.id.btnSharedProjects)
+        ListObjectsButton = findViewById(R.id.btnListObjects)
 
         // Set up new project button click listener
         newProjectButton.setOnClickListener {
@@ -52,13 +63,35 @@ class ProfileActivity : AppCompatActivity() {
         // Set up my projects button click listener
         myProjectsButton.setOnClickListener {
             // Start ProjectsActivity when "My Projects" button is clicked
-            val intent = Intent(this, ProjectsActivity::class.java)
+            // and pass to it the List of projects
+            fetchUserProjectsandStart()
+        }
+
+        // Set up Shared projects button click listener
+        SharedProjectsButton.setOnClickListener {
+            // Start ProjectsActivity when "My Projects" button is clicked
+            fetchSharedUserProjectsandStart()
+        }
+
+        // Set up List Objects button click listener
+        ListObjectsButton.setOnClickListener {
+            // Launch the ListObjects activity (called product activity)
+            val intent = Intent(applicationContext, ProductActivity::class.java)
             startActivity(intent)
         }
 
         // Set up logout button click listener
         logoutButton.setOnClickListener {
+
+            // Clear the token stored in SharedPreferences
+            clearTokenFromSharedPreferences()
+
             // Handle logout logic, e.g., clear SharedPreferences and navigate to login screen
+            val intent = Intent(applicationContext, LoginActivity::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            startActivity(intent)
+
+            showToast("Logout successful")
         }
     }
 
@@ -92,16 +125,18 @@ class ProfileActivity : AppCompatActivity() {
                 // Parse the JSON response to get user profile information
                 try {
                     val jsonResponse = JSONObject(responseBody)
-                    val username = jsonResponse.getString("username")
+                    val get_username = jsonResponse.getString("username")
                     val email = jsonResponse.getString("email")
                     val name = jsonResponse.getString("name")
                     val surname = jsonResponse.getString("surname")
 
+                    username = get_username
+
                     // Update UI with user profile information
                     runOnUiThread {
-                        usernameTextView.text = "HI $name"
+                        usernameTextView.text = "Time to build, $name"
                         emailTextView.text = "Email: $email"
-                        nameSurnameTextView.text = "username: $username"
+                        nameSurnameTextView.text = "username: $get_username"
                     }
                 } catch (e: JSONException) {
                     e.printStackTrace()
@@ -112,21 +147,28 @@ class ProfileActivity : AppCompatActivity() {
 
     private fun showTitleInputDialog() {
         fetchUserProjects()
+        // Inflate the custom dialog layout
+        val dialogView = layoutInflater.inflate(R.layout.custom_dialog_title_profile, null)
+
+        // Initialize AlertDialog builder with the custom layout
         val builder = AlertDialog.Builder(this)
-        builder.setTitle("Enter Project Title")
+        builder.setView(dialogView)
 
-        // Set up the input
-        val input = EditText(this)
-        builder.setView(input)
+        // Get reference to EditText in the custom layout
+        val inputTitle = dialogView.findViewById<EditText>(R.id.editTextTitle)
 
-        // Set up the buttons
-        builder.setPositiveButton("OK") { _, _ ->
-            val title = input.text.toString()
+        // Set up the dialog appearance
+        val dialog = builder.create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent) // Transparent background
+        dialog.show()
+
+        // Set up the "OK" button click listener
+        dialogView.findViewById<Button>(R.id.buttonOK).setOnClickListener {
+            val title = inputTitle.text.toString()
             if (projectsList.any { project -> project == title }) {
                 // Show a warning Toast and return
                 Toast.makeText(this, "Project with the same title already exists", Toast.LENGTH_SHORT).show()
-            }
-            else{
+            } else {
                 // Do something with the title, e.g., send it to the server or use it locally
                 Toast.makeText(this, "Project Title: $title", Toast.LENGTH_SHORT).show()
 
@@ -135,13 +177,14 @@ class ProfileActivity : AppCompatActivity() {
                     putExtra("projectTitle", title) // Pass the project title to ARActivity
                 }
                 startActivity(intent)
+                dialog.dismiss() // Dismiss the dialog
             }
         }
 
-        builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
-
-        // Show the dialog
-        builder.show()
+        // Set up the "Cancel" button click listener
+        dialogView.findViewById<Button>(R.id.buttonCancel).setOnClickListener {
+            dialog.dismiss() // Dismiss the dialog
+        }
     }
 
     private fun fetchUserProjects() {
@@ -196,6 +239,163 @@ class ProfileActivity : AppCompatActivity() {
                 }
             }
         })
+    }
+
+    private fun fetchUserProjectsandStart() {
+        // Make a network request to Flask /projects
+        // Use an HTTP client library like Retrofit or OkHttp for network requests
+
+        val projectsUrl = "https://frafortu.pythonanywhere.com/projects"
+        // Get the JWT from SharedPreferences
+        val sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
+        val authToken = sharedPreferences.getString("jwtToken", "")
+
+        // Make a GET request to fetch user projects
+        val client = OkHttpClient()
+        val request = Request.Builder()
+            .url(projectsUrl)
+            .header("Content-Type", "application/json")
+            .header("Authorization", "Bearer $authToken") // Include the JWT in the Authorization header
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                e.printStackTrace()
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                val responseBody = response.body?.string()
+                Log.d("Response", responseBody ?: "Response body is null")
+
+                // Parse the JSON response to get user projects information
+                try {
+                    val jsonResponse = JSONObject(responseBody)
+
+                    if (jsonResponse.getBoolean("success")) {
+                        // If the "success" key is true, check if "projects" is a JSON array
+                        if (jsonResponse.has("projects") && jsonResponse.get("projects") is JSONArray) {
+                            val jsonArray = jsonResponse.getJSONArray("projects")
+
+                            // Update RecyclerView adapter with projects data
+                            projectsList = mutableListOf<String>()
+                            for (i in 0 until jsonArray.length()) {
+                                val projectName = jsonArray.getJSONObject(i).getString("project_name")
+                                if (jsonArray.getJSONObject(i).getString("shared_with") != username){
+                                    projectsList.add(projectName)
+                                }
+                            }
+
+                            startProjectsActivity(projectsList)
+
+
+                        } else {
+                            Log.e("ProjectsActivity", "Invalid format: 'projects' key not found or not a JSONArray")
+                        }
+                    } else {
+                        Log.e("ProjectsActivity", "Request was not successful")
+                    }
+                } catch (e: JSONException) {
+                    e.printStackTrace()
+                }
+            }
+        })
+    }
+
+    private fun startProjectsActivity(projectsList: MutableList<String>) {
+        // Convert the list of triples to a format that can be easily serialized
+
+        // Create an Intent to start ARActivity
+        val intent = Intent(this, MyProjectsActivity::class.java)
+
+        // Pass relevant data as extras to ARActivity
+        intent.putExtra("project_list", ArrayList(projectsList))
+
+        // Start ARActivity
+        startActivity(intent)
+    }
+
+    private fun fetchSharedUserProjectsandStart() {
+        // Make a network request to Flask /projects
+        // Use an HTTP client library like Retrofit or OkHttp for network requests
+
+        val projectsUrl = "https://frafortu.pythonanywhere.com/projects"
+        // Get the JWT from SharedPreferences
+        val sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
+        val authToken = sharedPreferences.getString("jwtToken", "")
+
+        // Make a GET request to fetch user projects
+        val client = OkHttpClient()
+        val request = Request.Builder()
+            .url(projectsUrl)
+            .header("Content-Type", "application/json")
+            .header("Authorization", "Bearer $authToken") // Include the JWT in the Authorization header
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                e.printStackTrace()
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                val responseBody = response.body?.string()
+                Log.d("Response", responseBody ?: "Response body is null")
+
+                // Parse the JSON response to get user projects information
+                try {
+                    val jsonResponse = JSONObject(responseBody)
+
+                    if (jsonResponse.getBoolean("success")) {
+                        // If the "success" key is true, check if "projects" is a JSON array
+                        if (jsonResponse.has("projects") && jsonResponse.get("projects") is JSONArray) {
+                            val jsonArray = jsonResponse.getJSONArray("projects")
+
+                            // Update RecyclerView adapter with projects data
+                            val projectsListShared = mutableListOf<String>()
+                            for (i in 0 until jsonArray.length()) {
+                                val projectName = jsonArray.getJSONObject(i).getString("project_name")
+                                if (jsonArray.getJSONObject(i).getString("shared_with") == username && jsonArray.getJSONObject(i).getString("shared_with") != null){
+                                    projectsListShared.add(projectName)
+                                }
+                            }
+
+                            Log.d("user and projects", "$username and $projectsListShared")
+
+                            startSharedProjectsActivity(projectsListShared)
+
+                        } else {
+                            Log.e("ProjectsActivity", "Invalid format: 'projects' key not found or not a JSONArray")
+                        }
+                    } else {
+                        Log.e("ProjectsActivity", "Request was not successful")
+                    }
+                } catch (e: JSONException) {
+                    e.printStackTrace()
+                }
+            }
+        })
+    }
+
+    private fun startSharedProjectsActivity(projectsList: MutableList<String>) {
+
+        // Create an Intent to start ARActivity
+        val intent = Intent(this, SharedProjectsActivity::class.java)
+
+        // Pass relevant data as extras to ARActivity
+        intent.putExtra("project_list", ArrayList(projectsList))
+
+        // Start SharedProjectsActivity
+        startActivity(intent)
+    }
+    private fun clearTokenFromSharedPreferences() {
+        val sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
+        val editor = sharedPreferences.edit()
+        editor.remove("jwtToken")
+        editor.apply()
+    }
+    private fun showToast(message: String) {
+        runOnUiThread {
+            Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+        }
     }
 
 }

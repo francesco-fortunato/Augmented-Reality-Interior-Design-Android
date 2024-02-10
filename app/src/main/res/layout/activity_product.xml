@@ -4,22 +4,29 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@drawable/background"
     tools:context=".ProductActivity">
 
     <Button
         android:id="@+id/btnPlayground"
-        style="@android:style/Widget.Material.Button.Colored"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="0dp"
-        android:text="Open AR Camera" />
+        android:layout_marginTop="15dp"
+        android:layout_marginBottom="10dp"
+        android:layout_marginLeft="20dp"
+        android:layout_marginRight="20dp"
+        android:text="Open AR Camera"
+        android:textSize="18sp"
+        android:background="@drawable/button_background"
+        android:textColor="@color/white"/>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerView"
         android:layout_marginTop="5dp"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_below="@+id/btnPlayground" >
+        android:layout_below="@+id/btnPlayground"
+        android:textColor="@color/purple_200" >
     </androidx.recyclerview.widget.RecyclerView>
 
 </RelativeLayout>

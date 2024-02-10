@@ -15,8 +15,6 @@ import androidx.recyclerview.widget.RecyclerView
 import java.lang.String
 import kotlin.Int
 
-
-
  class ProductAdapter( val mCtx: Context, productList: List<Product>) :
     RecyclerView.Adapter<ProductAdapter.ProductViewHolder?>() {
     private val productList: List<Product>
@@ -27,7 +25,7 @@ import kotlin.Int
 
     override fun onCreateViewHolder(parent: ViewGroup, i: Int): ProductViewHolder {
         val inflater = LayoutInflater.from(mCtx)
-        val view = inflater.inflate(R.layout.list_layout, null)
+        val view = inflater.inflate(R.layout.list_object_layout, null)
         return ProductViewHolder(view)
     }
 
@@ -39,8 +37,6 @@ import kotlin.Int
         productViewHolder.textViewPrice.setText(String.valueOf(product.price))
         productViewHolder.imageView.setImageDrawable(mCtx.resources.getDrawable(product.img))
     }
-
-
 
     override fun getItemCount(): Int {
         return productList.size

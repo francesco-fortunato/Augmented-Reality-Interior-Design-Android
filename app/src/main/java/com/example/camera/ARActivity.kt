@@ -2,16 +2,15 @@
 package com.example.camera
 
 import android.animation.ObjectAnimator
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.os.Bundle
 import android.os.Handler
-import android.os.Looper
 import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import android.widget.Button
-import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -29,26 +28,30 @@ import androidx.lifecycle.lifecycleScope
 import com.google.ar.core.Anchor
 import com.google.ar.core.Anchor.CloudAnchorState
 import com.google.ar.core.Config
+import com.google.ar.core.Pose
 import com.google.ar.core.Session
 import com.google.ar.core.TrackingFailureReason
-import com.google.ar.core.TrackingState
 import dev.romainguy.kotlin.math.Float2
 import dev.romainguy.kotlin.math.Float3
+import dev.romainguy.kotlin.math.RotationsOrder
 import io.github.sceneview.ar.ARSceneView
-import io.github.sceneview.ar.arcore.canHostCloudAnchor
 import io.github.sceneview.ar.arcore.createAnchorOrNull
-import io.github.sceneview.ar.arcore.isTracking
 import io.github.sceneview.ar.arcore.isValid
+import io.github.sceneview.ar.arcore.rotation
 import io.github.sceneview.ar.getDescription
-import io.github.sceneview.ar.localScale
+import io.github.sceneview.ar.localRotation
 import io.github.sceneview.ar.node.AnchorNode
 import io.github.sceneview.ar.node.CloudAnchorNode
+import io.github.sceneview.ar.scene.destroy
+import io.github.sceneview.collision.Quaternion
 import io.github.sceneview.collision.Vector3
 import io.github.sceneview.gesture.GestureDetector
 import io.github.sceneview.gesture.MoveGestureDetector
 import io.github.sceneview.gesture.RotateGestureDetector
 import io.github.sceneview.gesture.ScaleGestureDetector
 import io.github.sceneview.math.Position
+import io.github.sceneview.math.quaternion
+import io.github.sceneview.math.toQuaternion
 import io.github.sceneview.node.ModelNode
 import io.github.sceneview.node.Node
 import kotlinx.coroutines.launch
@@ -69,10 +72,11 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
     lateinit var horiz_hide_show: LinearLayout
     lateinit var button_hide_show : Button
     private lateinit var lastCloudAnchorNode: Anchor
-    private var currentScaleFactor = 1.0f
+    private var currentScaleFactor = 0.7f
+    var isRotating = false
 
 
-    private val anchorsList = mutableListOf<Pair<Anchor, String>>()
+    private val anchorsList = mutableListOf<Triple<AnchorNode?, String, Float3>>()
 
     var vis: Boolean = false
     var isLoading = false
@@ -190,7 +194,7 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
                             it.isValid (depthPoint = false,point=false)
                         }?.createAnchorOrNull()?.let{
                                 anchor ->
-                            addAnchorNode(anchor)
+                            addAnchorNode(anchor, Float3(0.37438163f, 0.37438163f, 0.37438163f))
                             lastCloudAnchorNode= anchor
 
                         }
@@ -212,7 +216,7 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
                         Log.d("DAD", "DAD= $dad")
                         Log.d("DAD", "DAD ANCHOR= $dadanchor")
 
-                        anchorsList.removeIf { (anchor, _) ->
+                        anchorsList.removeIf { (anchor, _, _) ->
                             anchor.toString() == dadanchor.toString()
                         }
                         node.parent=null
@@ -233,19 +237,42 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
                 }
 
                 override fun onMove(detector: MoveGestureDetector, e: MotionEvent, node: Node?) {
+                    if (node != null) {
+                        val modelnode : ModelNode = node as ModelNode
 
+                        modelnode.scale
+
+                        Log.d("SCALE","Scale to units: ${modelnode?.scale}")
+
+                    }
                 }
 
+                @SuppressLint("SuspiciousIndentation")
                 override fun onMoveEnd(detector: MoveGestureDetector, e: MotionEvent, node: Node?) {
+                    if (node != null) {
+                        val modelnode : ModelNode = node as ModelNode
 
+                        modelnode.scale
+
+                        Log.d("SCALE","Scale to units: ${modelnode?.scale}")
+
+                        if (node.parent is AnchorNode){
+                            Log.d("ANCHOR NODE NEW (in teoria)", "${anchorNode?.anchor}")
+                            Log.d("ANCHOR NODE NEW (in teoria)", "new: ${anchorNode?.anchor?.pose}")
+                            for ((anchornode, model, scaling) in anchorsList){
+                                if (anchornode.toString() == node.parent.toString()){
+                                    // Update the entry with the new AnchorNode
+                                    anchorsList.remove(Triple(anchornode, model, scaling))
+                                    anchorsList.add(Triple(node.parent as AnchorNode, model, scaling))
+                                    break // Exit the loop once the replacement is done
+                                }
+                            }
+                        }
+
+                    }
                 }
 
-                override fun onRotateBegin(
-                    detector: RotateGestureDetector,
-                    e: MotionEvent,
-                    node: Node?
-                ) {
-
+                override fun onRotateBegin(detector: RotateGestureDetector, e: MotionEvent, node: Node?) {
                 }
 
                 override fun onRotate(
@@ -253,16 +280,12 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
                     e: MotionEvent,
                     node: Node?
                 ) {
-
                 }
 
-                override fun onRotateEnd(
-                    detector: RotateGestureDetector,
-                    e: MotionEvent,
-                    node: Node?
-                ) {
-
+                override fun onRotateEnd(detector: RotateGestureDetector, e: MotionEvent, node: Node?) {
                 }
+
+
 
                 override fun onScaleBegin(
                     detector: ScaleGestureDetector,
@@ -273,33 +296,72 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
                 }
 
                 override fun onScale(detector: ScaleGestureDetector, e: MotionEvent, node: Node?) {
-                    // Get the scale factor from the ScaleGestureDetector
+                    if (node is ModelNode) {
+                        scaleModelNode(node, detector)
+                    } else if (node is AnchorNode) {
+                        // Check if one of the children is a ModelNode
+                        val modelNodeChild = node.childNodes.firstOrNull { it is ModelNode } as? ModelNode
+                        modelNodeChild?.let { scaleModelNode(it, detector) }
+                    }
+                }
+
+                override fun onScaleEnd(detector: ScaleGestureDetector, e: MotionEvent, node: Node?) {
+                    if (node is ModelNode) {
+                        scaleModelNode(node, detector)
+
+                        if (node.parent is AnchorNode) {
+                            updateAnchorList(node.parent as AnchorNode, node)
+                        }
+                    } else if (node is AnchorNode) {
+                        // Check if one of the children is a ModelNode
+                        val modelNodeChild = node.childNodes.firstOrNull { it is ModelNode } as? ModelNode
+                        modelNodeChild?.let {
+                            scaleModelNode(it, detector)
+                            updateAnchorList(node, it)
+                        }
+                    }
+                }
+
+                private fun scaleModelNode(modelNode: ModelNode, detector: ScaleGestureDetector) {
                     val scaleFactor = detector.scaleFactor
 
-                    // Reduce sensitivity by multiplying scaleFactor by 0.5
-                    val adjustedScaleFactor = scaleFactor * 0.7f
+                    // Adjust the scale based on the scaleFactor
+                    val newScaleX = modelNode.scale.x * scaleFactor
+                    val newScaleY = modelNode.scale.y * scaleFactor
+                    val newScaleZ = modelNode.scale.z * scaleFactor
 
-                    // Update the current scale factor based on the zoom level
-                    currentScaleFactor *= adjustedScaleFactor
+                    // Define your scale limits
+                    val minScale = 0.37438163f
+                    val maxScale = 1.5f
 
-                    // Limit the scale factor to prevent excessive scaling
-                    val minScaleFactor = 0.3f
-                    val maxScaleFactor = 2.0f
-                    currentScaleFactor = currentScaleFactor.coerceIn(minScaleFactor, maxScaleFactor)
+                    // Clamp the new scale values to stay within the limits
+                    val clampedScaleX = newScaleX.coerceIn(minScale, maxScale)
+                    val clampedScaleY = newScaleY.coerceIn(minScale, maxScale)
+                    val clampedScaleZ = newScaleZ.coerceIn(minScale, maxScale)
 
-                    // Apply the adjusted scale factor to the node
-                    node?.scale = Float3(currentScaleFactor, currentScaleFactor, currentScaleFactor)
+                    // Set the clamped scale to the modelNode
+                    modelNode.scale = Float3(
+                        clampedScaleX.toFloat(),
+                        clampedScaleY.toFloat(),
+                        clampedScaleZ.toFloat()
+                    )
                 }
-                override fun onScaleEnd(
-                    detector: ScaleGestureDetector,
-                    e: MotionEvent,
-                    node: Node?
-                ) {
 
+                private fun updateAnchorList(anchorNode: AnchorNode, modelNode: ModelNode) {
+                    Log.d("SCALE", "Scale to units: ${modelNode?.scale}")
+
+                    for ((anchornode, model, scaling) in anchorsList) {
+                        if (anchornode.toString() == anchorNode.toString()) {
+                            // Update the entry with the new AnchorNode
+                            anchorsList.remove(Triple(anchornode, model, scaling))
+                            anchorsList.add(Triple(anchornode, model, modelNode?.scale) as Triple<AnchorNode?, String, Float3>)
+                            break // Exit the loop once the replacement is done
+                        }
+                    }
                 }
-
             }
         }
+
         // Check if anchor ID is passed in the intent
         val projectTitle = intent.getStringExtra("projectTitle")
         val anchorIdList = intent.getSerializableExtra("anchor_id_list") as? ArrayList<HashMap<String, String>>
@@ -314,13 +376,17 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
                     for (anchorData in anchorIdList) {
                         val anchorId = anchorData["anchor_id"]
                         kmodel = anchorData["model"].toString()
-
+                        val scaling = anchorData["scaling"].toString()
+                        Log.d("SCALE","RESOLVED SCALE STRING $scaling")
                         if (!anchorId.isNullOrBlank()) {
                             // Resolve the anchor using the anchorId
                             val resolvedAnchor = session.resolveCloudAnchor(anchorId)
                             if (resolvedAnchor != null) {
+                                val resolvedpose = resolvedAnchor.pose
+                                Log.d("POSE RESOLVED","Resolved pose = $resolvedpose")
                                 // Anchor resolved successfully, add anchor node
-                                addAnchorNode(resolvedAnchor)
+                                val float3Object = scaling?.let { it1 -> parseFloat3FromString(it1) }
+                                addAnchorNode(resolvedAnchor, float3Object)
                                 Log.d("Resolve", "Resolved $anchorId $kmodel $projectTitle")
                             } else {
                                 // Handle anchor resolution failure
@@ -348,8 +414,6 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
                     val session = sceneView.session ?: return@setOnClickListener
                     val frame = sceneView.frame ?: return@setOnClickListener
 
-
-
                     if (sceneView.session?.estimateFeatureMapQualityForHosting(frame.camera.pose) == Session.FeatureMapQuality.INSUFFICIENT) {
                         val insufficientVisualDataToast = Toast.makeText(
                             context,
@@ -368,108 +432,112 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
                     val anchorDataList = mutableListOf<JSONObject>()
 
                     // Iterate over anchorsList
-                    for ((anchor, selectedModel) in anchorsList) {
+                    for ((anchorNode, selectedModel, scaling) in anchorsList) {
                         val session = sceneView.session ?: continue
 
-                        sceneView.addChildNode(CloudAnchorNode(sceneView.engine, anchor).apply {
-                            host(session) { cloudAnchorId, state ->
-                                Log.d("CloudAnchor", "STATE: $state, CloudAnchorId: $cloudAnchorId")
-                                when (state) {
-                                    CloudAnchorState.SUCCESS -> {
-                                        Log.d("CloudAnchor", "Cloud anchor hosted successfully: $cloudAnchorId")
+                        if (anchorNode != null) {
+                            sceneView.addChildNode(CloudAnchorNode(sceneView.engine, anchorNode.anchor).apply {
+                                host(session) { cloudAnchorId, state ->
+                                    Log.d("CloudAnchor", "STATE: $state, CloudAnchorId: $cloudAnchorId")
+                                    when (state) {
+                                        CloudAnchorState.SUCCESS -> {
+                                            Log.d("CloudAnchor", "Cloud anchor hosted successfully: $cloudAnchorId")
 
-                                        // Create a JSON object for the anchor data
-                                        val anchorData = JSONObject().apply {
-                                            put("anchor_id", cloudAnchorId)
-                                            put("model", selectedModel)
-                                        }
-
-                                        // Add the anchor data to the list
-                                        anchorDataList.add(anchorData)
-
-                                        Log.d("Actual Anchor Data List", "$anchorDataList")
-
-
-                                        // Check if all anchors are hosted successfully
-                                        if (anchorDataList.size == anchorsList.size) {
-                                            // All anchors hosted, send the data to the server
-                                            val projectTitle = intent.getStringExtra("projectTitle")
-
-                                            // Create a JSON object to send to the server
-                                            val requestBody = JSONObject().apply {
-                                                put("anchors", anchorDataList)
-                                                put("project_title", projectTitle)
+                                            // Create a JSON object for the anchor data
+                                            val anchorData = JSONObject().apply {
+                                                put("anchor_id", cloudAnchorId)
+                                                put("model", selectedModel)
+                                                put("scaling", scaling)
                                             }
 
-                                            val sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
-                                            val authToken = sharedPreferences.getString("jwtToken", "")
+                                            // Add the anchor data to the list
+                                            anchorDataList.add(anchorData)
 
-                                            // Make a POST request to the Flask /anchors endpoint
-                                            val client = OkHttpClient()
-                                            val request = Request.Builder()
-                                                .url("https://frafortu.pythonanywhere.com/project")
-                                                .header("Content-Type", "application/json")
-                                                .header("Authorization", "Bearer $authToken") // Include the JWT in the Authorization header
-                                                .post(RequestBody.create("application/json".toMediaTypeOrNull(), requestBody.toString()))
-                                                .build()
+                                            Log.d("Actual Anchor Data List", "$anchorDataList")
 
-                                            client.newCall(request).enqueue(object : Callback {
-                                                override fun onFailure(call: Call, e: IOException) {
-                                                    e.printStackTrace()
-                                                    // Handle failure
+
+                                            // Check if all anchors are hosted successfully
+                                            if (anchorDataList.size == anchorsList.size) {
+                                                // All anchors hosted, send the data to the server
+                                                val projectTitle = intent.getStringExtra("projectTitle")
+
+                                                // Create a JSON object to send to the server
+                                                val requestBody = JSONObject().apply {
+                                                    put("anchors", anchorDataList)
+                                                    put("project_title", projectTitle)
                                                 }
 
-                                                override fun onResponse(call: Call, response: Response) {
-                                                    // Handle the response from the server
-                                                    val responseBody = response.body?.string()
-                                                    Log.d("Response", responseBody ?: "Response body is null")
+                                                val sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
+                                                val authToken = sharedPreferences.getString("jwtToken", "")
 
-                                                    try {
-                                                        val jsonResponse = JSONObject(responseBody)
-                                                        val success = jsonResponse.optBoolean("success", false)
+                                                // Make a POST request to the Flask /anchors endpoint
+                                                val client = OkHttpClient()
+                                                val request = Request.Builder()
+                                                    .url("https://frafortu.pythonanywhere.com/project")
+                                                    .header("Content-Type", "application/json")
+                                                    .header("Authorization", "Bearer $authToken") // Include the JWT in the Authorization header
+                                                    .post(RequestBody.create("application/json".toMediaTypeOrNull(), requestBody.toString()))
+                                                    .build()
 
-                                                        if (success) {
-                                                            // Show a success Toast
-                                                            runOnUiThread {
-                                                                Toast.makeText(context, "Operation successful", Toast.LENGTH_SHORT).show()
-                                                            }
-                                                        } else {
-                                                            // Show a failure Toast or handle the failure case as needed
-                                                            runOnUiThread {
-                                                                Toast.makeText(context, "Operation failed", Toast.LENGTH_SHORT).show()
-                                                            }
-                                                        }
-                                                    } catch (e: JSONException) {
+                                                client.newCall(request).enqueue(object : Callback {
+                                                    override fun onFailure(call: Call, e: IOException) {
                                                         e.printStackTrace()
-                                                        // Handle JSON parsing error
-                                                    } finally {
-                                                        // Enable the button after processing the response
-                                                        runOnUiThread {
-                                                            isClickable = true
-                                                            isEnabled = true
+                                                        // Handle failure
+                                                    }
+
+                                                    override fun onResponse(call: Call, response: Response) {
+                                                        // Handle the response from the server
+                                                        val responseBody = response.body?.string()
+                                                        Log.d("Response", responseBody ?: "Response body is null")
+
+                                                        try {
+                                                            val jsonResponse = JSONObject(responseBody)
+                                                            val success = jsonResponse.optBoolean("success", false)
+
+                                                            if (success) {
+                                                                // Show a success Toast
+                                                                runOnUiThread {
+                                                                    Toast.makeText(context, "Operation successful", Toast.LENGTH_SHORT).show()
+                                                                }
+                                                            } else {
+                                                                // Show a failure Toast or handle the failure case as needed
+                                                                runOnUiThread {
+                                                                    Toast.makeText(context, "Operation failed", Toast.LENGTH_SHORT).show()
+                                                                }
+                                                            }
+                                                        } catch (e: JSONException) {
+                                                            e.printStackTrace()
+                                                            // Handle JSON parsing error
+                                                        } finally {
+                                                            // Enable the button after processing the response
+                                                            runOnUiThread {
+                                                                isClickable = true
+                                                                isEnabled = true
+                                                            }
                                                         }
                                                     }
-                                                }
-                                            })
+                                                })
+                                            }
                                         }
-                                    }
-                                    else -> {
-                                        Log.d("CloudAnchor", "Cloud anchor hosting failed: $cloudAnchorId")
-                                        val failureToast = Toast.makeText(
-                                            context,
-                                            "Cloud anchor hosting failed: $cloudAnchorId",
-                                            Toast.LENGTH_LONG
-                                        )
-                                        failureToast.show()
-                                        // Enable the button after showing the toast
-                                        runOnUiThread {
-                                            isClickable = true
-                                            isEnabled = true
+
+                                        else -> {
+                                            Log.d("CloudAnchor", "Cloud anchor hosting failed: $cloudAnchorId")
+                                            val failureToast = Toast.makeText(
+                                                context,
+                                                "Cloud anchor hosting failed: $cloudAnchorId",
+                                                Toast.LENGTH_LONG
+                                            )
+                                            failureToast.show()
+                                            // Enable the button after showing the toast
+                                            runOnUiThread {
+                                                isClickable = true
+                                                isEnabled = true
+                                            }
                                         }
                                     }
                                 }
-                            }
-                        })
+                            })
+                        }
                     }
 
                 }
@@ -511,14 +579,14 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
         }
     }
 
-    fun addAnchorNode(anchor: Anchor) {
+    fun addAnchorNode(anchor: Anchor, scaling: Float3?) {
         val selectedModel = kmodel  // Save the current selected model
-
-
         sceneView.addChildNode(
             AnchorNode(sceneView.engine, anchor)
                 .apply {
                     isEditable = true
+                    isPositionEditable =true
+                    isRotationEditable = false
 
                     lifecycleScope.launch {
                         isLoading = true
@@ -529,15 +597,24 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
                                 ModelNode(
                                     modelInstance = modelInstance,
                                     // Scale to fit in a 0.5 meters cube
-                                    scaleToUnits = 0.5f,
+                                    scaleToUnits = 1.0f,
                                     // Bottom origin instead of center so the model base is on the floor
                                     centerOrigin = Position(y = -0.5f)
                                 ).apply {
                                     isEditable = true
+                                    isRotationEditable = false
+
+
+                                    if (scaling != null) {
+                                        this.scale = scaling
+                                    }
+
+
                                 }
                             )
                         }
                         isLoading = false
+                        isRotationEditable = false
                     }
                     anchorNode = this
 
@@ -545,12 +622,46 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
         )
 
         // Add the anchor and the selected model to the list
-        val newAnchorPair = Pair(anchor, selectedModel)
-        anchorsList.add(newAnchorPair)
+        val newAnchorTriple = Triple(anchorNode, selectedModel, scaling)
+        anchorsList.add(newAnchorTriple as Triple<AnchorNode?, String, Float3>)
 
         // Log the contents of the anchorsList
-        Log.d("AnchorsList", "Added new anchor: $newAnchorPair. AnchorsList: $anchorsList")
+        Log.d("AnchorsList", "Added new anchor: $newAnchorTriple. AnchorsList: $anchorsList")
+        Log.d("AnchorsList", "new anchor pose: ${anchor.pose}")
+        anchorNode?.childNodes?.forEach { childNode ->
+            val translation = childNode.worldTransform.translation
+            val rotation = childNode.worldTransform.rotation
+            println("Child Node Translation and rotation: $translation")
+            println("Child Node Translation and rotation: $rotation")
+        }
     }
+
+    fun parseFloat3FromString(input: String): Float3? {
+        try {
+            // Extract values from the string
+            val regex = Regex("Float3\\(x=(-?\\d+\\.\\d+), y=(-?\\d+\\.\\d+), z=(-?\\d+\\.\\d+)\\)")
+            val matchResult = regex.find(input)
+            Log.d("MATCH","Result: $matchResult")
+            if (matchResult != null) {
+                val (x, y, z) = matchResult.destructured
+                // Create a Float3 object
+                val float3 = Float3(x.toFloat(), y.toFloat(), z.toFloat())
+
+                // Log the successfully parsed Float3
+                Log.d("parseFloat3", "Successfully parsed Float3: $float3")
+
+                return float3
+            }
+        } catch (e: Exception) {
+            // Log any exceptions that occurred during parsing
+            Log.e("parseFloat3", "Error parsing Float3 from input: $input", e)
+        }
+
+        // Log that parsing failed and return null
+        Log.d("parseFloat3", "Failed to parse Float3 from input: $input")
+        return null
+    }
+
 
     fun Fragment.setFullScreen(
         fullScreen: Boolean = true,

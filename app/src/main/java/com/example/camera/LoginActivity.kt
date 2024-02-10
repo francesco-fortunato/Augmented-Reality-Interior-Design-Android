@@ -23,8 +23,8 @@ class LoginActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_login)
 
-        val usernameEditText: EditText = findViewById(R.id.editTextUsername)
-        val passwordEditText: EditText = findViewById(R.id.editTextPassword)
+        val usernameEditText: EditText = findViewById(R.id.username)
+        val passwordEditText: EditText = findViewById(R.id.password)
         val loginButton: Button = findViewById(R.id.buttonLogin)
         val registerButton: Button = findViewById(R.id.buttonRegister)
 
@@ -74,11 +74,7 @@ class LoginActivity : AppCompatActivity() {
                         val token = jsonResponse.getString("token")
                         saveTokenToSharedPreferences(token)
                         // Login successful, proceed to the profile activity
-                        runOnUiThread {
-                            val intent = Intent(applicationContext, ProfileActivity::class.java)
-                            startActivity(intent)
-                            finish() // Close the login activity
-                        }
+                        fetchUserProfile()
                     } else {
                         // Login unsuccessful, show a toast message
                         showToast(jsonResponse.getString("message"))
@@ -99,6 +95,59 @@ class LoginActivity : AppCompatActivity() {
         editor.putString("jwtToken", token)
         editor.apply()
     }
+
+    private fun fetchUserProfile() {
+        // Make a network request to Flask /profile
+        // Use an HTTP client library like Retrofit or OkHttp for network requests
+
+        // User data class with 'username', 'email', 'name', and 'surname' properties
+        val profileUrl = "https://frafortu.pythonanywhere.com/profile"
+        // Get the JWT from SharedPreferences
+        val sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
+        val authToken = sharedPreferences.getString("jwtToken", "")
+
+        // Make a GET request to fetch user profile
+        val client = OkHttpClient()
+        val request = Request.Builder()
+            .url(profileUrl)
+            .header("Content-Type", "application/json")
+            .header("Authorization", "Bearer $authToken") // Include the JWT in the Authorization header
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                e.printStackTrace()
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                val responseBody = response.body?.string()
+                Log.d("Response", responseBody ?: "Response body is null")
+
+                // Parse the JSON response to get user profile information
+                try {
+                    val jsonResponse = JSONObject(responseBody)
+                    val get_username = jsonResponse.getString("username")
+                    val email = jsonResponse.getString("email")
+                    val name = jsonResponse.getString("name")
+                    val surname = jsonResponse.getString("surname")
+
+                    runOnUiThread {
+                        // Create an intent to start ProfileActivity and put user profile data as extras
+                        val intent = Intent(applicationContext, ProfileActivity::class.java)
+                        intent.putExtra("username", get_username)
+                        intent.putExtra("email", email)
+                        intent.putExtra("name", name)
+                        intent.putExtra("surname", surname)
+                        startActivity(intent)
+                        finish() // Close the login activity
+                    }
+                } catch (e: JSONException) {
+                    e.printStackTrace()
+                }
+            }
+        })
+    }
+
 
 
 

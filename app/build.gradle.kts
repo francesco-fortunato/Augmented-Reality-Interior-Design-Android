@@ -39,15 +39,16 @@ android {
     }
     buildFeatures {
         compose = true
+        viewBinding = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.4.8"
     }
-   /* packaging {
-        resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
-        }
-    }*/
+    /* packaging {
+         resources {
+             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+         }
+     }*/
 
 }
 
@@ -59,6 +60,7 @@ dependencies {
     implementation(platform("androidx.compose:compose-bom:2023.03.00"))
     implementation(platform("androidx.compose:compose-bom:2023.03.00"))
     implementation("com.google.android.material:material:1.11.0")
+    implementation("com.android.volley:volley:1.2.1")
     androidTestImplementation(platform("androidx.compose:compose-bom:2023.03.00"))
     androidTestImplementation(platform("androidx.compose:compose-bom:2023.03.00"))
     androidTestImplementation(platform("androidx.compose:compose-bom:2023.03.00"))
@@ -91,7 +93,7 @@ dependencies {
     releaseImplementation ("io.github.sceneview:sceneview:2.0.2")
 
     implementation("androidx.recyclerview:recyclerview:1.3.2")
-        // For control over item selection of both touch and mouse driven selection
+    // For control over item selection of both touch and mouse driven selection
     implementation("androidx.recyclerview:recyclerview-selection:1.1.0")
 
 
