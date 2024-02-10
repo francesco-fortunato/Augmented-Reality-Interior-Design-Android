@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Camera</string>
+    <string name="app_name">AR Interior Design</string>
     <string name="title_activity_camera">CameraActivity</string>
     <string name="title_activity_product">ProductActivity</string>
     <string name="title_activity_main2">MainActivity2</string>
