@@ -28,6 +28,7 @@ class MyProjectsActivity : AppCompatActivity() {
     private lateinit var myProjectsAdapter: MyProjectsAdapter
     private lateinit var recyclerView: RecyclerView
     private lateinit var backToProfileButton: Button
+    private lateinit var username: String
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,6 +40,7 @@ class MyProjectsActivity : AppCompatActivity() {
 
         // Get user projects from ProfileActivity
         val projectsList = intent.getStringArrayListExtra("project_list") ?: emptyList<String>()
+        username = intent.getStringExtra("username").toString()
 
         // Set up RecyclerView and Adapter
         myProjectsAdapter = MyProjectsAdapter { projectName ->
@@ -397,8 +399,12 @@ class MyProjectsActivity : AppCompatActivity() {
                             // Update RecyclerView adapter with projects data
                             val projectsList = mutableListOf<String>()
                             for (i in 0 until jsonArray.length()) {
-                                val projectName = jsonArray.getJSONObject(i).getString("project_name")
-                                projectsList.add(projectName)
+                                if (jsonArray.getJSONObject(i).getString("shared_with") != username) {
+                                    val projectName =
+                                        jsonArray.getJSONObject(i).getString("project_name")
+
+                                    projectsList.add(projectName)
+                                }
                             }
 
                             runOnUiThread {

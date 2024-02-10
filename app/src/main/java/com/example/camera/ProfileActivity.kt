@@ -309,6 +309,7 @@ class ProfileActivity : AppCompatActivity() {
 
         // Pass relevant data as extras to ARActivity
         intent.putExtra("project_list", ArrayList(projectsList))
+        intent.putExtra("username", username)
 
         // Start ARActivity
         startActivity(intent)

@@ -103,13 +103,15 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
         }
 
     fun updateInstructions() {
-        instructionText.text = trackingFailureReason?.let {
+        val frame = sceneView.frame
+        instructionText.text = (trackingFailureReason?.let {
             it.getDescription(this)
         } ?: if (anchorNode == null) {
-            getString(R.string.point_your_phone_down)
+            getString(R.string.tap_anywhere_to_add_model)
         } else {
             null
-        }
+        })
+
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -138,13 +140,15 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
                 config.planeFindingMode = Config.PlaneFindingMode.HORIZONTAL
             }
             onSessionUpdated = { _, frame ->
-                /* if (anchorNode == null) {
-                    frame.getUpdatedPlanes()
-                        .firstOrNull { it.type == Plane.Type.HORIZONTAL_UPWARD_FACING }
-                        ?.let { plane ->
-                            addAnchorNode(plane.createAnchor(plane.centerPose))
-                        }
-                }*/
+                if (frame != null && anchorNode != null) {
+                    val quality = sceneView.session?.estimateFeatureMapQualityForHosting(frame.camera.pose)
+                    instructionText.text = when (quality) {
+                        Session.FeatureMapQuality.INSUFFICIENT -> "Insufficient visual data - move the device around the object and try again"
+                        Session.FeatureMapQuality.SUFFICIENT -> "Sufficient visual data. Continue moving the device around the object to get better results"
+                        Session.FeatureMapQuality.GOOD -> "Good visual data!"
+                        else -> instructionText.text // Keep the current instruction if quality is unknown
+                    }
+                }
             }
 
 
@@ -218,7 +222,7 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
                         Log.d("DAD", "DAD ANCHOR= $dadanchor")
 
                         anchorsList.removeIf { (anchor, _, _) ->
-                            anchor.toString() == dadanchor.toString()
+                            anchor.toString() == dad.toString()
                         }
                         node.parent=null
                         node.destroy()
@@ -375,6 +379,7 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
                     val session = sceneView.session ?: return@setOnClickListener
 
                     for (anchorData in anchorIdList) {
+                       instructionText.text = "Resolving. . ."
                         val anchorId = anchorData["anchor_id"]
                         kmodel = anchorData["model"].toString()
                         val scaling = anchorData["scaling"].toString()
@@ -401,6 +406,7 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
                             }
                         }
                     }
+                    instructionText.text = ""
                 }
             }
         } else {
