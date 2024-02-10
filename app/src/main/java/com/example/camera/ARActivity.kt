@@ -61,6 +61,7 @@ import org.json.JSONException
 import org.json.JSONObject
 import java.io.IOException
 
+
 private var kmodel="https://sceneview.github.io/assets/models/DamagedHelmet.glb"
 class ARActivity : AppCompatActivity(R.layout.ar_activity) {
 
@@ -387,7 +388,7 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
                                 // Anchor resolved successfully, add anchor node
                                 val float3Object = scaling?.let { it1 -> parseFloat3FromString(it1) }
                                 addAnchorNode(resolvedAnchor, float3Object)
-                                Log.d("Resolve", "Resolved $anchorId $kmodel $projectTitle")
+                                Log.d("Resolve", "Resolved $anchorId $kmodel $float3Object")
                             } else {
                                 // Handle anchor resolution failure
                                 val resolutionFailureToast = Toast.makeText(
@@ -437,6 +438,9 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
 
                         if (anchorNode != null) {
                             sceneView.addChildNode(CloudAnchorNode(sceneView.engine, anchorNode.anchor).apply {
+                                isScaleEditable = false
+
+                                isRotationEditable=false
                                 host(session) { cloudAnchorId, state ->
                                     Log.d("CloudAnchor", "STATE: $state, CloudAnchorId: $cloudAnchorId")
                                     when (state) {
@@ -584,6 +588,7 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
         sceneView.addChildNode(
             AnchorNode(sceneView.engine, anchor)
                 .apply {
+                    isScaleEditable = false
                     isEditable = true
                     isPositionEditable =true
                     isRotationEditable = false
@@ -597,19 +602,15 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
                                 ModelNode(
                                     modelInstance = modelInstance,
                                     // Scale to fit in a 0.5 meters cube
-                                    scaleToUnits = 1.0f,
+                                    scaleToUnits = null,
                                     // Bottom origin instead of center so the model base is on the floor
                                     centerOrigin = Position(y = -0.5f)
                                 ).apply {
                                     isEditable = true
                                     isRotationEditable = false
-
-
                                     if (scaling != null) {
-                                        this.scale = scaling
+                                        this.scale   = scaling
                                     }
-
-
                                 }
                             )
                         }

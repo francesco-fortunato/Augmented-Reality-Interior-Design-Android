@@ -59,7 +59,7 @@ class MyProjectsActivity : AppCompatActivity() {
         }
     }
 
-    private fun showTitleInputDialog(projectId: Int, projectTitle: String, anchorIdList: List<Pair<String, String>>) {
+    private fun showTitleInputDialog(projectId: Int, projectTitle: String, anchorIdList: List<Triple<String, String, String>>) {
         // Inflate the custom dialog layout
         val dialogView = layoutInflater.inflate(R.layout.custom_dialog_project_activity, null)
 
@@ -133,7 +133,7 @@ class MyProjectsActivity : AppCompatActivity() {
         dialog.show()
     }
 
-    private fun showUsernameInputDialog(projectId: Int, projectTitle: String, anchorIdList: List<Pair<String, String>>) {
+    private fun showUsernameInputDialog(projectId: Int, projectTitle: String, anchorIdList: List<Triple<String, String, String>>) {
         val dialogView = layoutInflater.inflate(R.layout.custom_dialog_title_profile, null)
         val builder = AlertDialog.Builder(this)
         builder.setView(dialogView)
@@ -302,14 +302,15 @@ class MyProjectsActivity : AppCompatActivity() {
                         // Check if the JSON response contains anchor details
                         if (jsonResponse.has("anchors") && jsonResponse.get("anchors") is JSONArray) {
                             val anchorsArray = jsonResponse.getJSONArray("anchors")
-                            val anchorsList = mutableListOf<Pair<String, String>>() // Pair of anchorId and model
+                            val anchorsList = mutableListOf<Triple<String, String, String>>() // Pair of anchorId and model
 
                             // Iterate through the anchorsArray and add each anchor to the list
                             for (i in 0 until anchorsArray.length()) {
                                 val anchorObject = anchorsArray.getJSONObject(i)
                                 val anchorId = anchorObject.getString("anchor_id")
                                 val model = anchorObject.getString("model")
-                                anchorsList.add(Pair(anchorId, model))
+                                val scaling = anchorObject.getString("scaling")
+                                anchorsList.add(Triple(anchorId, model, scaling))
                             }
 
                             // Do showTitleInputDialog and pass the relevant data at the end
@@ -332,14 +333,15 @@ class MyProjectsActivity : AppCompatActivity() {
     }
 
 
-    private fun startARActivity(projectId: Int, projectTitle: String, anchorIdList: List<Pair<String, String>>) {
+    private fun startARActivity(projectId: Int, projectTitle: String, anchorIdList: List<Triple<String, String, String>>) {
         // Convert the list of pairs to a format that can be easily serialized
-        val anchorIdArrayList = ArrayList<HashMap<String, String>>()
+        val anchorIdArrayList = ArrayList<HashMap<String, Any>>()
 
-        for (pair in anchorIdList) {
-            val hashMap = hashMapOf<String, String>()
-            hashMap["anchor_id"] = pair.first
-            hashMap["model"] = pair.second
+        for (triple in anchorIdList) {
+            val hashMap = hashMapOf<String, Any>()
+            hashMap["anchor_id"] = triple.first
+            hashMap["model"] = triple.second
+            hashMap["scaling"] = triple.third
             anchorIdArrayList.add(hashMap)
         }
 
