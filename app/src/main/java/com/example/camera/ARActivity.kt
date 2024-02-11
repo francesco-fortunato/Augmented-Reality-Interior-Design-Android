@@ -129,6 +129,7 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
         loadingView = findViewById(R.id.loadingView)
         sceneView = findViewById<ARSceneView?>(R.id.sceneView).apply {
             planeRenderer.isEnabled = true
+            planeRenderer.isShadowReceiver=true
             configureSession { session, config ->
                 config.depthMode = when (session.isDepthModeSupported(Config.DepthMode.AUTOMATIC)) {
                     true -> Config.DepthMode.AUTOMATIC
@@ -137,10 +138,14 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
                 config.instantPlacementMode = Config.InstantPlacementMode.DISABLED
                 config.lightEstimationMode = Config.LightEstimationMode.ENVIRONMENTAL_HDR
                 config.cloudAnchorMode= Config.CloudAnchorMode.ENABLED
-                //config.geospatialMode = Config.GeospatialMode.ENABLED
+                config.geospatialMode = Config.GeospatialMode.ENABLED
                 config.planeFindingMode = Config.PlaneFindingMode.HORIZONTAL
+                session.configure(config)
             }
+
             onSessionUpdated = { _, frame ->
+                //sceneView.cameraStream?.isDepthOcclusionEnabled = true
+                Log.d("mode", sceneView.cameraStream?.isDepthOcclusionEnabled.toString())
                 if (frame != null && anchorNode != null) {
                     val quality = sceneView.session?.estimateFeatureMapQualityForHosting(frame.camera.pose)
                     instructionText.text = when (quality) {
@@ -607,6 +612,8 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
                                 scaleToUnits = null,
                                 centerOrigin = Position(y = 0.0f)
                             ).apply {
+                                isShadowCaster = true  // Enable casting shadows
+                                isShadowReceiver = true  // Enable receiving shadows
                                 isEditable = true
                                 isRotationEditable = false
                                 scaling?.let {

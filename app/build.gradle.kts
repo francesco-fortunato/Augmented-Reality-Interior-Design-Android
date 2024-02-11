@@ -81,8 +81,7 @@ dependencies {
     // If you want to additionally use the CameraX Extensions library
     implementation("androidx.camera:camera-extensions:${camerax_version}")
 
-    implementation ("io.github.sceneview:arsceneview:2.0.2")
-    implementation ("io.github.sceneview:sceneview:2.0.2")
+    implementation ("io.github.sceneview:arsceneview:2.0.3")
     implementation ("androidx.compose.ui:ui:1.5.4")
     implementation ("androidx.compose.foundation:foundation:1.5.4")
     implementation ("androidx.activity:activity-compose:1.8.1")
@@ -90,8 +89,7 @@ dependencies {
     implementation ("androidx.compose.ui:ui-tooling-preview:1.5.4")
     implementation ("androidx.navigation:navigation-compose:2.7.5")
     implementation ("com.squareup.okhttp3:okhttp:4.9.1")
-    releaseImplementation ("io.github.sceneview:sceneview:2.0.2")
-
+    implementation ("com.google.android.gms:play-services-location:21.1.0")
     implementation("androidx.recyclerview:recyclerview:1.3.2")
     // For control over item selection of both touch and mouse driven selection
     implementation("androidx.recyclerview:recyclerview-selection:1.1.0")
