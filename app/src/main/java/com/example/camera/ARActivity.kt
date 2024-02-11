@@ -28,6 +28,7 @@ import androidx.lifecycle.lifecycleScope
 import com.google.ar.core.Anchor
 import com.google.ar.core.Anchor.CloudAnchorState
 import com.google.ar.core.Config
+import com.google.ar.core.Plane
 import com.google.ar.core.Pose
 import com.google.ar.core.Session
 import com.google.ar.core.TrackingFailureReason
@@ -134,7 +135,7 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
                     else -> Config.DepthMode.DISABLED
                 }
                 config.instantPlacementMode = Config.InstantPlacementMode.DISABLED
-                config.lightEstimationMode = Config.LightEstimationMode.AMBIENT_INTENSITY
+                config.lightEstimationMode = Config.LightEstimationMode.ENVIRONMENTAL_HDR
                 config.cloudAnchorMode= Config.CloudAnchorMode.ENABLED
                 //config.geospatialMode = Config.GeospatialMode.ENABLED
                 config.planeFindingMode = Config.PlaneFindingMode.HORIZONTAL
@@ -193,17 +194,14 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
 
                 override fun onSingleTapConfirmed(e: MotionEvent, node: Node?) {
                     if (node == null) {
-                        // If the tapped node is null, add an anchor node
-                        val hitResults = frame?.hitTest(e.x,e.y)
-                        hitResults?.firstOrNull(){
-                            it.isValid (depthPoint = false,point=false)
-                        }?.createAnchorOrNull()?.let{
-                                anchor ->
+                        val hitResultList = frame?.hitTest(e.x, e.y)
+                        hitResultList?.firstOrNull { hitResult ->
+                            hitResult.trackable is Plane && (hitResult.trackable as Plane).isPoseInPolygon(hitResult.hitPose)
+                        }?.let { hitResult ->
+                            // Create an anchor at the hit test point on the detected plane
+                            val anchor = hitResult.createAnchor()
                             addAnchorNode(anchor, Float3(0.37438163f, 0.37438163f, 0.37438163f))
-                            lastCloudAnchorNode= anchor
-
                         }
-
                     }
                 }
 
@@ -591,40 +589,38 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
 
     fun addAnchorNode(anchor: Anchor, scaling: Float3?) {
         val selectedModel = kmodel  // Save the current selected model
+
+        // Add the anchor node with the model node attached
         sceneView.addChildNode(
             AnchorNode(sceneView.engine, anchor)
                 .apply {
                     isScaleEditable = false
                     isEditable = true
-                    isPositionEditable =true
+                    isPositionEditable = true
                     isRotationEditable = false
 
                     lifecycleScope.launch {
                         isLoading = true
-                        sceneView.modelLoader.loadModelInstance(
-                            selectedModel
-                        )?.let { modelInstance ->
-                            addChildNode(
-                                ModelNode(
-                                    modelInstance = modelInstance,
-                                    // Scale to fit in a 0.5 meters cube
-                                    scaleToUnits = null,
-                                    // Bottom origin instead of center so the model base is on the floor
-                                    centerOrigin = Position(y = -0.5f)
-                                ).apply {
-                                    isEditable = true
-                                    isRotationEditable = false
-                                    if (scaling != null) {
-                                        this.scale   = scaling
-                                    }
+                        sceneView.modelLoader.loadModelInstance(selectedModel)?.let { modelInstance ->
+                            val modelNode = ModelNode(
+                                modelInstance = modelInstance,
+                                scaleToUnits = null,
+                                centerOrigin = Position(y = 0.0f)
+                            ).apply {
+                                isEditable = true
+                                isRotationEditable = false
+                                scaling?.let {
+                                    this.scale = it
                                 }
-                            )
+                            }
+
+                            // Add the model node as a child of the anchor node
+                            addChildNode(modelNode)
                         }
                         isLoading = false
                         isRotationEditable = false
                     }
                     anchorNode = this
-
                 }
         )
 
@@ -635,12 +631,6 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
         // Log the contents of the anchorsList
         Log.d("AnchorsList", "Added new anchor: $newAnchorTriple. AnchorsList: $anchorsList")
         Log.d("AnchorsList", "new anchor pose: ${anchor.pose}")
-        anchorNode?.childNodes?.forEach { childNode ->
-            val translation = childNode.worldTransform.translation
-            val rotation = childNode.worldTransform.rotation
-            println("Child Node Translation and rotation: $translation")
-            println("Child Node Translation and rotation: $rotation")
-        }
     }
 
     fun parseFloat3FromString(input: String): Float3? {
