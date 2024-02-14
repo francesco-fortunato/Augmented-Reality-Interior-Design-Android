@@ -42,7 +42,7 @@ android {
         viewBinding = true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.4.8"
+        kotlinCompilerExtensionVersion = "1.5.4"
     }
     /* packaging {
          resources {
@@ -55,12 +55,17 @@ android {
 
 
 dependencies {
+
+    implementation ("com.google.firebase:firebase-database:20.3.0")
+    implementation("com.google.android.gms:play-services-auth:20.7.0")
+
     implementation(platform("androidx.compose:compose-bom:2023.03.00"))
     implementation(platform("androidx.compose:compose-bom:2023.03.00"))
     implementation(platform("androidx.compose:compose-bom:2023.03.00"))
     implementation(platform("androidx.compose:compose-bom:2023.03.00"))
     implementation("com.google.android.material:material:1.11.0")
     implementation("com.android.volley:volley:1.2.1")
+    implementation("com.google.firebase:firebase-auth-ktx:22.3.1")
     androidTestImplementation(platform("androidx.compose:compose-bom:2023.03.00"))
     androidTestImplementation(platform("androidx.compose:compose-bom:2023.03.00"))
     androidTestImplementation(platform("androidx.compose:compose-bom:2023.03.00"))
@@ -80,6 +85,9 @@ dependencies {
     implementation("androidx.camera:camera-mlkit-vision:${camerax_version}")
     // If you want to additionally use the CameraX Extensions library
     implementation("androidx.camera:camera-extensions:${camerax_version}")
+
+
+
 
     implementation ("io.github.sceneview:arsceneview:2.0.3")
     implementation ("androidx.compose.ui:ui:1.5.4")
@@ -117,3 +125,4 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 }
+
