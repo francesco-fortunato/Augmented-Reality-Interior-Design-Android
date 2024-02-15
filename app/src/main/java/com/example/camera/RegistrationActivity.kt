@@ -29,6 +29,37 @@ class RegistrationActivity : AppCompatActivity() {
         val passwordEditText: EditText = findViewById(R.id.editTextPassword)
         val submitButton: Button = findViewById(R.id.buttonSubmit)
 
+        // Check if extras are passed
+        val emailExtra = intent.getStringExtra("email")
+        val displaynameExtra = intent.getStringExtra("displayname")
+
+        if (emailExtra != null && displaynameExtra != null) {
+            // Extras are present, set email and display name EditText fields as unmodifiable with those values
+            emailEditText.apply {
+                setText(emailExtra)
+                isEnabled = false
+                isFocusable = false
+            }
+
+            // Split the display name into name and surname
+            val spaceIndex = displaynameExtra.indexOf(' ')
+            val name = displaynameExtra.substring(0, spaceIndex)
+            val surname = displaynameExtra.substring(spaceIndex + 1)
+
+            nameEditText.apply {
+                setText(name)
+                isEnabled = false
+                isFocusable = false
+            }
+            surnameEditText.apply {
+                setText(surname)
+                isEnabled = false
+                isFocusable = false
+            }
+        }
+
+
+
         submitButton.setOnClickListener {
             val name = nameEditText.text.toString()
             val surname = surnameEditText.text.toString()

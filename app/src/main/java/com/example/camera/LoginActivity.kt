@@ -42,6 +42,7 @@ class LoginActivity : AppCompatActivity() {
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken(getString(R.string.default_web_client_id))
             .requestEmail()
+            .requestProfile()
             .build()
         googleSignInClient = GoogleSignIn.getClient(this,gso)
 
@@ -78,17 +79,24 @@ class LoginActivity : AppCompatActivity() {
         launcher.launch(signIntent)
 
     }
-private val launcher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-    if (result.resultCode == Activity.RESULT_OK) {
-        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
-        handleResults(task)
+    private val launcher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        Log.d("Log", "${result.data}")
+        if (result.resultCode == Activity.RESULT_OK) {
+            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+            handleResults(task)
+        }
     }
-}
     private fun handleResults(task: Task<GoogleSignInAccount>){
         if(task.isSuccessful){
             val account : GoogleSignInAccount? = task.result
             if(account !=null){
-                updateUI(account)
+                val email = account.email
+                val displayName = account.displayName
+                Log.d("mail", "${account.email}")
+                Log.d("name", "${account.displayName}")
+                if (email != null && displayName != null) {
+                    loginWithGoogle(email, displayName, "google")
+                }
             }
         }else{
             Toast.makeText(this,task.exception.toString(),Toast.LENGTH_SHORT).show()
@@ -98,6 +106,7 @@ private val launcher = registerForActivityResult(ActivityResultContracts.StartAc
     private fun updateUI(account: GoogleSignInAccount){
         val credential = GoogleAuthProvider.getCredential(account.idToken,null)
         auth.signInWithCredential(credential).addOnCompleteListener{
+            Log.d("Logging", "$it")
             if(it.isSuccessful){
                 Toast.makeText(this,"Oauth riuscita",Toast.LENGTH_SHORT).show()
             }
@@ -106,6 +115,61 @@ private val launcher = registerForActivityResult(ActivityResultContracts.StartAc
             }
         }
     }
+
+    private fun loginWithGoogle(email: String, displayname: String, type: String) {
+        val json = JSONObject()
+        json.put("email", email)
+        json.put("displayname", displayname)
+        json.put("type", type) // Indicate Google login
+
+        val requestBody = RequestBody.create("application/json; charset=utf-8".toMediaTypeOrNull(), json.toString())
+
+        val request = Request.Builder()
+            .url(baseUrl)
+            .post(requestBody)
+            .header("Content-Type", "application/json")
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                showToast("Failed to connect to the server")
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                val responseBody = response.body?.string()
+                Log.d("Response", responseBody ?: "Response body is null")
+
+                try {
+                    val jsonResponse = JSONObject(responseBody)
+                    val success = jsonResponse.getBoolean("success")
+
+                    if (success) {
+                        // Login successful
+                        val token = jsonResponse.getString("token")
+                        saveTokenToSharedPreferences(token)
+                        showToast("Login successful")
+                        fetchUserProfile()
+
+                        // Proceed to next activity
+                    } else {
+                        // Login unsuccessful
+                        showToast(jsonResponse.getString("message"))
+                        val msg = jsonResponse.getString("message")
+                        if (msg == "User not registered"){
+                            val intent = Intent(applicationContext, RegistrationActivity::class.java)
+                            intent.putExtra("email", email)
+                            intent.putExtra("displayname", displayname)
+                            startActivity(intent)
+                        }
+                    }
+                } catch (e: JSONException) {
+                    // Handle JSON parsing error
+                    Log.e("JSON Parsing Error", e.message ?: "Unknown error")
+                }
+            }
+        })
+    }
+
     private fun loginToServer(username: String, password: String) {
         val json = JSONObject()
         json.put("username", username)

@@ -23,6 +23,14 @@
           }
         },
         {
+          "client_id": "586000914345-u8vdr2c338k3pp026t8ok1aicardbujr.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.camera",
+            "certificate_hash": "c8da2c5f5f1c8b6ca39ba5a65d4ba3f77bfb14b6"
+          }
+        },
+        {
           "client_id": "586000914345-sb6dvbfpmb7k7p99ijjpodm4ls7nccrr.apps.googleusercontent.com",
           "client_type": 3
         }
