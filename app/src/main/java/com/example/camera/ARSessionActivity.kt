@@ -1,12 +1,11 @@
-
 package com.example.camera
 
 import android.animation.ObjectAnimator
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
-import android.os.Handler
 import android.util.Log
 import android.view.MotionEvent
 import android.view.View
@@ -15,6 +14,7 @@ import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.ComponentActivity
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
@@ -26,45 +26,44 @@ import androidx.core.view.isGone
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.google.ar.core.Anchor
-import com.google.ar.core.Anchor.CloudAnchorState
 import com.google.ar.core.Config
 import com.google.ar.core.Plane
-import com.google.ar.core.Pose
 import com.google.ar.core.Session
 import com.google.ar.core.TrackingFailureReason
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.Query
+import com.google.firebase.database.ValueEventListener
 import dev.romainguy.kotlin.math.Float2
 import dev.romainguy.kotlin.math.Float3
-import dev.romainguy.kotlin.math.RotationsOrder
 import io.github.sceneview.ar.ARSceneView
-import io.github.sceneview.ar.arcore.createAnchorOrNull
-import io.github.sceneview.ar.arcore.isValid
-import io.github.sceneview.ar.arcore.rotation
 import io.github.sceneview.ar.getDescription
-import io.github.sceneview.ar.localRotation
 import io.github.sceneview.ar.node.AnchorNode
 import io.github.sceneview.ar.node.CloudAnchorNode
-import io.github.sceneview.ar.scene.destroy
-import io.github.sceneview.collision.Quaternion
-import io.github.sceneview.collision.Vector3
 import io.github.sceneview.gesture.GestureDetector
 import io.github.sceneview.gesture.MoveGestureDetector
 import io.github.sceneview.gesture.RotateGestureDetector
 import io.github.sceneview.gesture.ScaleGestureDetector
 import io.github.sceneview.math.Position
-import io.github.sceneview.math.quaternion
-import io.github.sceneview.math.toQuaternion
 import io.github.sceneview.node.ModelNode
 import io.github.sceneview.node.Node
 import kotlinx.coroutines.launch
-import okhttp3.*
+import okhttp3.Call
+import okhttp3.Callback
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody
+import okhttp3.Response
 import org.json.JSONException
 import org.json.JSONObject
 import java.io.IOException
 
-
 private var kmodel="https://sceneview.github.io/assets/models/DamagedHelmet.glb"
-class ARActivity : AppCompatActivity(R.layout.ar_activity) {
+class ARSessionActivity: AppCompatActivity(R.layout.ar_activity) {
+
     lateinit var b : ImageButton
     lateinit var b1 : Button
     lateinit var sceneView: ARSceneView
@@ -75,6 +74,7 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
     private lateinit var lastCloudAnchorNode: Anchor
     private var currentScaleFactor = 0.7f
     var isRotating = false
+    private lateinit var databaseReference: DatabaseReference
 
 
     private val anchorsList = mutableListOf<Triple<AnchorNode?, String, Float3>>()
@@ -114,6 +114,8 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
 
     }
 
+    private lateinit var database: DatabaseReference
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -123,6 +125,11 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
             hideSystemBars = false,
             fitsSystemWindows = false
         )
+        val sessionId = intent.getStringExtra("sessionId")
+
+        database = FirebaseDatabase.getInstance().reference
+        databaseReference = FirebaseDatabase.getInstance().getReference("sessions/$sessionId/models")
+
 
         instructionText = findViewById(R.id.instructionText)
         loadingView = findViewById(R.id.loadingView)
@@ -159,7 +166,7 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
 
 
             onTrackingFailureChanged = { reason ->
-                this@ARActivity.trackingFailureReason = reason
+                this@ARSessionActivity.trackingFailureReason = reason
             }
 
             onGestureListener = object : GestureDetector.OnGestureListener {
@@ -205,7 +212,10 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
                             // Create an anchor at the hit test point on the detected plane
                             val anchor = hitResult.createAnchor()
                             addAnchorNode(anchor, Float3(0.37438163f, 0.37438163f, 0.37438163f))
+                            addModelToFirebase(kmodel,anchor)
                         }
+
+
                     }
                 }
 
@@ -225,9 +235,12 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
 
                         anchorsList.removeIf { (anchor, _, _) ->
                             anchor.toString() == dad.toString()
+
                         }
                         node.parent=null
                         node.destroy()
+                        deleteModelFromFirebase(node,dadanchor)
+
                     }
                 }
 
@@ -452,7 +465,7 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
                                 host(session) { cloudAnchorId, state ->
                                     Log.d("CloudAnchor", "STATE: $state, CloudAnchorId: $cloudAnchorId")
                                     when (state) {
-                                        CloudAnchorState.SUCCESS -> {
+                                        Anchor.CloudAnchorState.SUCCESS -> {
                                             Log.d("CloudAnchor", "Cloud anchor hosted successfully: $cloudAnchorId")
 
                                             // Create a JSON object for the anchor data
@@ -639,6 +652,45 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
         Log.d("AnchorsList", "new anchor pose: ${anchor.pose}")
     }
 
+    fun addModelToFirebase(modelString: String,anchor: Anchor) {
+        val newModelKey = databaseReference.push().key!!
+        val anchorString = anchor.toString()
+
+        val newModelMap = mapOf(
+            "name" to modelString,
+            "anchor" to anchorString
+            // Add other model properties if needed
+        )
+
+        databaseReference.child(newModelKey).setValue(newModelMap)
+    }
+
+    fun deleteModelFromFirebase(model: Node,anchor: Anchor){
+        val modelString = model.toString()
+        val anchorString = anchor.toString()
+        val query: Query = databaseReference.orderByChild("name").equalTo(modelString)
+
+        query.addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(dataSnapshot: DataSnapshot) {
+                for (modelSnapshot in dataSnapshot.children) {
+                    val modelAnchor = modelSnapshot.child("anchor").getValue(String::class.java)
+
+                    if (modelAnchor != null && modelAnchor == anchorString) {
+                        // Remove the model from the database
+                        modelSnapshot.ref.removeValue()
+                        println("Model deleted from session successfully!")
+                        return
+                    }
+                }
+                println("Model not found in the session")
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.w("Firebase", "loadData:onCancelled", error.toException())
+            }
+        })
+    }
+
     fun parseFloat3FromString(input: String): Float3? {
         try {
             // Extract values from the string
@@ -717,4 +769,8 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
             }
         }
     }
+
+
 }
+
+

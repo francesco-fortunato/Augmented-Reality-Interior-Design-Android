@@ -10,6 +10,8 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.FirebaseDatabase
 import okhttp3.*
 import org.json.JSONArray
 import org.json.JSONException
@@ -28,6 +30,7 @@ class ProfileActivity : AppCompatActivity() {
     private lateinit var logoutButton: Button
     private lateinit var projectsList: MutableList<String>
     private lateinit var username : String
+    private lateinit var sessionAr: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -53,11 +56,18 @@ class ProfileActivity : AppCompatActivity() {
         myProjectsButton = findViewById(R.id.btnMyProjects)
         SharedProjectsButton = findViewById(R.id.btnSharedProjects)
         ListObjectsButton = findViewById(R.id.btnListObjects)
+        sessionAr = findViewById(R.id.SessionBTn)
 
         // Set up new project button click listener
         newProjectButton.setOnClickListener {
             // Show a title input popup when "Start a New Project" button is clicked
             showTitleInputDialog()
+        }
+
+        sessionAr.setOnClickListener{
+            //funzione che crea una session e chiama l activity di AR session
+            CreateSession()
+
         }
 
         // Set up my projects button click listener
@@ -94,6 +104,30 @@ class ProfileActivity : AppCompatActivity() {
             showToast("Logout successful")
         }
     }
+
+
+    fun CreateSession(){
+        val sessionsReference: DatabaseReference = FirebaseDatabase.getInstance().getReference("sessions")
+        val newSessionMap = mapOf(
+            "users" to mapOf(
+                // Add user IDs or any relevant user data if needed
+                "user1" to username,
+                "user2" to "not defined"
+            ),
+            "models" to mapOf(
+                // Add models or any initial data if needed
+            )
+        )
+        // Generate a unique key for the new session
+        val newSessionKey: String = sessionsReference.push().key!!
+        sessionsReference.child(newSessionKey).setValue(newSessionMap)
+
+        val intent = Intent(this, ARSessionActivity::class.java)
+        intent.putExtra("sessionId", newSessionKey)
+        this.startActivity(intent)
+    }
+
+
 
     private fun fetchUserProfile() {
         // Make a network request to Flask /profile
