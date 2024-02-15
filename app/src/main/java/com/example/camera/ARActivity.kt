@@ -137,7 +137,7 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
                 config.instantPlacementMode = Config.InstantPlacementMode.DISABLED
                 config.lightEstimationMode = Config.LightEstimationMode.ENVIRONMENTAL_HDR
                 config.cloudAnchorMode= Config.CloudAnchorMode.ENABLED
-                config.geospatialMode = Config.GeospatialMode.ENABLED
+                config.geospatialMode = Config.GeospatialMode.DISABLED
                 config.planeFindingMode = Config.PlaneFindingMode.HORIZONTAL
                 session.configure(config)
             }
@@ -145,7 +145,7 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
             onSessionUpdated = { _, frame ->
                 //sceneView.cameraStream?.isDepthOcclusionEnabled = true
                 Log.d("mode", sceneView.cameraStream?.isDepthOcclusionEnabled.toString())
-                if (frame != null && anchorNode != null) {
+                /*if (frame != null && anchorNode != null) {
                     val quality = sceneView.session?.estimateFeatureMapQualityForHosting(frame.camera.pose)
                     instructionText.text = when (quality) {
                         Session.FeatureMapQuality.INSUFFICIENT -> "Insufficient visual data - move the device around the object and try again"
@@ -153,7 +153,7 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
                         Session.FeatureMapQuality.GOOD -> "Good visual data!"
                         else -> instructionText.text // Keep the current instruction if quality is unknown
                     }
-                }
+                }*/
             }
 
 

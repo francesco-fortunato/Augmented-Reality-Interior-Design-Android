@@ -1,9 +1,13 @@
 package com.example.camera
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.view.LayoutInflater
+import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
@@ -66,7 +70,7 @@ class ProfileActivity : AppCompatActivity() {
 
         sessionAr.setOnClickListener{
             //funzione che crea una session e chiama l activity di AR session
-            CreateSession()
+            showSessionOptionsDialog()
 
         }
 
@@ -105,8 +109,20 @@ class ProfileActivity : AppCompatActivity() {
         }
     }
 
+    private fun showSessionOptionsDialog() {
+        val options = arrayOf("Create New Session", "Join Existing Session")
+        AlertDialog.Builder(this)
+            .setTitle("Session Options")
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> createNewSession()
+                    1 -> joinExistingSession()
+                }
+            }
+            .show()
+    }
 
-    fun CreateSession(){
+    private fun createNewSession() {
         val sessionsReference: DatabaseReference = FirebaseDatabase.getInstance().getReference("sessions")
         val newSessionMap = mapOf(
             "users" to mapOf(
@@ -122,9 +138,67 @@ class ProfileActivity : AppCompatActivity() {
         val newSessionKey: String = sessionsReference.push().key!!
         sessionsReference.child(newSessionKey).setValue(newSessionMap)
 
+        // Show dialog with the session key
+        showSessionKeyDialog(newSessionKey)
+    }
+
+    private fun joinExistingSession() {
+        // Prompt the user to enter the session key
+        val inputEditText = EditText(this)
+        val dialog = AlertDialog.Builder(this)
+            .setTitle("Enter Session Key")
+            .setView(inputEditText)
+            .setPositiveButton("Join") { _, _ ->
+                val sessionKey = inputEditText.text.toString()
+                // Start ARSessionActivity with sessionKey and participant mode
+                startARSessionActivity(sessionKey, participantMode = true)
+            }
+            .setNegativeButton("Cancel", null)
+            .create()
+
+        dialog.show()
+    }
+
+    private fun showSessionKeyDialog(sessionKey: String) {
+        // Inflate the custom layout
+        val view = LayoutInflater.from(this).inflate(R.layout.session_key_dialog, null)
+        val sessionKeyTextView: TextView = view.findViewById(R.id.sessionKeyTextView)
+        val copyButton: Button = view.findViewById(R.id.copyButton)
+        val startButton: Button = view.findViewById(R.id.startButton)
+
+        // Set session key text
+        sessionKeyTextView.text = "Session key: $sessionKey"
+
+        // Create the dialog
+        val dialog = AlertDialog.Builder(this)
+            .setView(view as View)
+            .create()
+
+        // Set onClickListener for copy button
+        copyButton.setOnClickListener {
+            // Copy session key to clipboard
+            val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            val clip = ClipData.newPlainText("Session Key", sessionKey)
+            clipboard.setPrimaryClip(clip)
+            Toast.makeText(this, "Session key copied to clipboard", Toast.LENGTH_SHORT).show()
+        }
+
+        // Set onClickListener for start button
+        startButton.setOnClickListener {
+            // Start ARSessionActivity with sessionKey and owner mode
+            startARSessionActivity(sessionKey, participantMode = false)
+            dialog.dismiss() // Dismiss the dialog when starting the session
+        }
+
+        // Show the dialog
+        dialog.show()
+    }
+
+    private fun startARSessionActivity(sessionKey: String, participantMode: Boolean) {
         val intent = Intent(this, ARSessionActivity::class.java)
-        intent.putExtra("sessionId", newSessionKey)
-        this.startActivity(intent)
+        intent.putExtra("sessionId", sessionKey)
+        intent.putExtra("participantMode", participantMode)
+        startActivity(intent)
     }
 
 
