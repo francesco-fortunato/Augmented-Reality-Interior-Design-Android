@@ -195,7 +195,13 @@ class ProfileActivity : AppCompatActivity() {
     }
 
     private fun startARSessionActivity(sessionKey: String, participantMode: Boolean) {
-        val intent = Intent(this, ARSessionActivity::class.java)
+        val intent : Intent
+        if (participantMode){
+            intent = Intent(this, AReSessionActivity::class.java)
+        }
+        else{
+            intent = Intent(this, ARSessionActivity::class.java)
+        }
         intent.putExtra("sessionId", sessionKey)
         intent.putExtra("participantMode", participantMode)
         startActivity(intent)

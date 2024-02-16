@@ -36,6 +36,7 @@ import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.Query
 import com.google.firebase.database.ValueEventListener
+import com.google.firebase.database.getValue
 import dev.romainguy.kotlin.math.Float2
 import dev.romainguy.kotlin.math.Float3
 import io.github.sceneview.ar.ARSceneView
@@ -62,7 +63,7 @@ import org.json.JSONObject
 import java.io.IOException
 
 private var kmodel="https://sceneview.github.io/assets/models/DamagedHelmet.glb"
-class ARSessionActivity: AppCompatActivity(R.layout.ar_activity) {
+class AReSessionActivity: AppCompatActivity(R.layout.ar_activity) {
 
     lateinit var b : ImageButton
     lateinit var b1 : Button
@@ -73,12 +74,13 @@ class ARSessionActivity: AppCompatActivity(R.layout.ar_activity) {
     lateinit var button_hide_show : Button
     private lateinit var lastCloudAnchorNode: Anchor
     private var currentScaleFactor = 0.7f
-    var isRotating = false
+    var firstly = true
     private lateinit var databaseReference: DatabaseReference
-    var old_anchor : Anchor? = null
 
 
-    private val anchorsList = mutableListOf<Triple<AnchorNode?, String, Float3>>()
+
+    private var anchorsList = mutableListOf<Pair<AnchorNode, String>>()
+    private var AnchList = mutableListOf<Triple<String, Anchor, String>>()
 
     var vis: Boolean = false
     var isLoading = false
@@ -167,7 +169,7 @@ class ARSessionActivity: AppCompatActivity(R.layout.ar_activity) {
 
 
             onTrackingFailureChanged = { reason ->
-                this@ARSessionActivity.trackingFailureReason = reason
+                this@AReSessionActivity.trackingFailureReason = reason
             }
 
             onGestureListener = object : GestureDetector.OnGestureListener {
@@ -234,7 +236,7 @@ class ARSessionActivity: AppCompatActivity(R.layout.ar_activity) {
                         Log.d("DAD", "DAD= $dad")
                         Log.d("DAD", "DAD ANCHOR= $dadanchor")
 
-                        anchorsList.removeIf { (anchor, _, _) ->
+                        anchorsList.removeIf { (anchor, _) ->
                             anchor.toString() == dad.toString()
 
                         }
@@ -254,12 +256,7 @@ class ARSessionActivity: AppCompatActivity(R.layout.ar_activity) {
                     e: MotionEvent,
                     node: Node?
                 ) {
-                    if (node != null) {
-                        if (node.parent is AnchorNode){
-                            Log.d("ANCHOR NODE OLD (in teoria)", "${anchorNode?.anchor}")
-                            old_anchor = anchorNode!!.anchor
-                        }
-                    }
+
                 }
 
                 override fun onMove(detector: MoveGestureDetector, e: MotionEvent, node: Node?) {
@@ -285,57 +282,14 @@ class ARSessionActivity: AppCompatActivity(R.layout.ar_activity) {
                         if (node.parent is AnchorNode){
                             Log.d("ANCHOR NODE NEW (in teoria)", "${anchorNode?.anchor}")
                             Log.d("ANCHOR NODE NEW (in teoria)", "new: ${anchorNode?.anchor?.pose}")
-                            for ((anchornode, model, scaling) in anchorsList){
+                            for ((anchornode, model) in anchorsList){
                                 if (anchornode.toString() == node.parent.toString()){
                                     // Update the entry with the new AnchorNode
-                                    anchorsList.remove(Triple(anchornode, model, scaling))
-                                    anchorsList.add(Triple(node.parent as AnchorNode, model, scaling))
-                                    val session = sceneView.session
-                                    val frame = sceneView.frame
-                                    val newAnchor = anchorNode?.anchor
-
-                                    // Check if both old and new anchors are available
-                                    if (old_anchor != null && newAnchor != null) {
-                                        if (frame != null && session != null) {
-                                            // Host the new cloud anchor
-                                            anchorNode!!.let { anchorNode ->
-                                                sceneView.addChildNode(CloudAnchorNode(sceneView.engine, anchorNode!!.anchor).apply {
-                                                    isScaleEditable = false
-
-                                                    isRotationEditable = false
-                                                    if (session != null) {
-                                                        host(session) { cloudAnchorId, state ->
-                                                            Log.d(
-                                                                "CloudAnchor",
-                                                                "STATE: $state, CloudAnchorId: $cloudAnchorId"
-                                                            )
-                                                            when (state) {
-                                                                Anchor.CloudAnchorState.SUCCESS -> {
-                                                                    Log.d(
-                                                                        "CloudAnchor",
-                                                                        "Cloud anchor hosted successfully: $cloudAnchorId"
-                                                                    )
-
-                                                                    if (cloudAnchorId != null) {
-                                                                        updateFirebaseAnchor(old_anchor!!, newAnchor, cloudAnchorId)
-
-                                                                    }
-
-
-                                                                }
-
-                                                                else -> {}
-                                                            }
-                                                        }
-                                                    }
-                                                })
-                                            }
-                                        }
-                                    }
-                                    break
+                                    anchorsList.remove(Pair(anchornode, model))
+                                    anchorsList.add(Pair((node.parent as AnchorNode), model))
+                                    break // Exit the loop once the replacement is done
                                 }
                             }
-
                         }
 
                     }
@@ -419,11 +373,11 @@ class ARSessionActivity: AppCompatActivity(R.layout.ar_activity) {
                 private fun updateAnchorList(anchorNode: AnchorNode, modelNode: ModelNode) {
                     Log.d("SCALE", "Scale to units: ${modelNode?.scale}")
 
-                    for ((anchornode, model, scaling) in anchorsList) {
+                    for ((anchornode, model) in anchorsList) {
                         if (anchornode.toString() == anchorNode.toString()) {
                             // Update the entry with the new AnchorNode
-                            anchorsList.remove(Triple(anchornode, model, scaling))
-                            anchorsList.add(Triple(anchornode, model, modelNode?.scale) as Triple<AnchorNode?, String, Float3>)
+                            anchorsList.remove(Pair(anchornode, model))
+                            anchorsList.add(Pair(anchornode, model))
                             break // Exit the loop once the replacement is done
                         }
                     }
@@ -435,188 +389,308 @@ class ARSessionActivity: AppCompatActivity(R.layout.ar_activity) {
         val projectTitle = intent.getStringExtra("projectTitle")
         val anchorIdList = intent.getSerializableExtra("anchor_id_list") as? ArrayList<HashMap<String, String>>
 
-        if (!anchorIdList.isNullOrEmpty()) {
-            // Anchor ID list is present, iterate over the list and resolve each anchor
-            b1 = findViewById<Button?>(R.id.hostButton).apply {
-                text = "LOAD PROJECT"
-                setOnClickListener {
-                    val session = sceneView.session ?: return@setOnClickListener
+        // We have to resolve session
+        b1 = findViewById<Button?>(R.id.hostButton).apply {
+            text = "SYNC"
+            setOnClickListener {
+                val session = sceneView.session ?: return@setOnClickListener
+                val sessionReference: DatabaseReference = FirebaseDatabase.getInstance().getReference("sessions/$sessionId/models")
+                Log.d("Firebase", "${sessionReference.toString()}")
 
-                    for (anchorData in anchorIdList) {
-                        instructionText.text = "Resolving. . ."
-                        val anchorId = anchorData["anchor_id"]
-                        kmodel = anchorData["model"].toString()
-                        val scaling = anchorData["scaling"].toString()
-                        Log.d("SCALE","RESOLVED SCALE STRING $scaling")
-                        if (!anchorId.isNullOrBlank()) {
-                            // Resolve the anchor using the anchorId
-                            val resolvedAnchor = session.resolveCloudAnchor(anchorId)
-                            if (resolvedAnchor != null) {
-                                val resolvedpose = resolvedAnchor.pose
-                                Log.d("POSE RESOLVED","Resolved pose = $resolvedpose")
-                                // Anchor resolved successfully, add anchor node
-                                val float3Object = scaling?.let { it1 -> parseFloat3FromString(it1) }
-                                addAnchorNode(resolvedAnchor, float3Object)
-                                Log.d("Resolve", "Resolved $anchorId $kmodel $float3Object")
-                            } else {
-                                // Handle anchor resolution failure
-                                val resolutionFailureToast = Toast.makeText(
-                                    context,
-                                    "Failed to resolve anchor: $anchorId",
-                                    Toast.LENGTH_LONG
-                                )
-                                resolutionFailureToast.show()
-                                Log.d("CloudAnchor", "Failed to resolve anchor: $anchorId")
+
+                val sessionListener = object : ValueEventListener {
+                    override fun onDataChange(dataSnapshot: DataSnapshot) {
+                        Log.d("Firebase", "onDataChange called")
+                        val modelList = mutableListOf<Pair<String, String>>() // Pair to store (name, anchor)
+                        Log.d("modelSnap", "${dataSnapshot.children}")
+                        for (modelSnapshot in dataSnapshot.children) {
+                            Log.d("modelSnap", "$modelSnapshot")
+                            val model = modelSnapshot.child("name").getValue<String>()!!
+                            val cloudAnchor = modelSnapshot.child("cloudAnchor").getValue<String>()!!
+                            if (model != null && cloudAnchor != null) {
+                                modelList.add(Pair(model, cloudAnchor))
                             }
+                            Log.d("InvokeSuccess -> ", "contenuto lista: ${modelList}")
+
                         }
-                    }
-                    instructionText.text = ""
-                }
-            }
-        } else {
-            // No anchor ID passed, proceed with hosting logic
-            b1 = findViewById<Button?>(R.id.hostButton).apply {
-                setOnClickListener {
-
-                    // Disable the button during the onClickListener execution
-                    isClickable = false
-                    isEnabled = false
-
-                    val session = sceneView.session ?: return@setOnClickListener
-                    val frame = sceneView.frame ?: return@setOnClickListener
-
-                    if (sceneView.session?.estimateFeatureMapQualityForHosting(frame.camera.pose) == Session.FeatureMapQuality.INSUFFICIENT) {
-                        val insufficientVisualDataToast = Toast.makeText(
-                            context,
-                            R.string.insufficient_visual_data,
-                            Toast.LENGTH_LONG
-                        )
-                        insufficientVisualDataToast.show()
-                        Log.d("CloudAnchor", "Insufficient visual data for hosting")
-                        // Enable the button after showing the toast
-                        isClickable = true
-                        isEnabled = true
-
-                        return@setOnClickListener
-                    }
-
-                    val anchorDataList = mutableListOf<JSONObject>()
-
-                    // Iterate over anchorsList
-                    for ((anchorNode, selectedModel, scaling) in anchorsList) {
-                        val session = sceneView.session ?: continue
-
-                        if (anchorNode != null) {
-                            sceneView.addChildNode(CloudAnchorNode(sceneView.engine, anchorNode.anchor).apply {
-                                isScaleEditable = false
-
-                                isRotationEditable=false
-                                host(session) { cloudAnchorId, state ->
-                                    Log.d("CloudAnchor", "STATE: $state, CloudAnchorId: $cloudAnchorId")
-                                    when (state) {
-                                        Anchor.CloudAnchorState.SUCCESS -> {
-                                            Log.d("CloudAnchor", "Cloud anchor hosted successfully: $cloudAnchorId")
-
-                                            // Create a JSON object for the anchor data
-                                            val anchorData = JSONObject().apply {
-                                                put("anchor_id", cloudAnchorId)
-                                                put("model", selectedModel)
-                                                put("scaling", scaling)
-                                            }
-
-                                            // Add the anchor data to the list
-                                            anchorDataList.add(anchorData)
-
-                                            Log.d("Actual Anchor Data List", "$anchorDataList")
-
-
-                                            // Check if all anchors are hosted successfully
-                                            if (anchorDataList.size == anchorsList.size) {
-                                                // All anchors hosted, send the data to the server
-                                                val projectTitle = intent.getStringExtra("projectTitle")
-
-                                                // Create a JSON object to send to the server
-                                                val requestBody = JSONObject().apply {
-                                                    put("anchors", anchorDataList)
-                                                    put("project_title", projectTitle)
-                                                }
-
-                                                val sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
-                                                val authToken = sharedPreferences.getString("jwtToken", "")
-
-                                                // Make a POST request to the Flask /anchors endpoint
-                                                val client = OkHttpClient()
-                                                val request = Request.Builder()
-                                                    .url("https://frafortu.pythonanywhere.com/project")
-                                                    .header("Content-Type", "application/json")
-                                                    .header("Authorization", "Bearer $authToken") // Include the JWT in the Authorization header
-                                                    .post(RequestBody.create("application/json".toMediaTypeOrNull(), requestBody.toString()))
-                                                    .build()
-
-                                                client.newCall(request).enqueue(object : Callback {
-                                                    override fun onFailure(call: Call, e: IOException) {
-                                                        e.printStackTrace()
-                                                        // Handle failure
-                                                    }
-
-                                                    override fun onResponse(call: Call, response: Response) {
-                                                        // Handle the response from the server
-                                                        val responseBody = response.body?.string()
-                                                        Log.d("Response", responseBody ?: "Response body is null")
-
-                                                        try {
-                                                            val jsonResponse = JSONObject(responseBody)
-                                                            val success = jsonResponse.optBoolean("success", false)
-
-                                                            if (success) {
-                                                                // Show a success Toast
-                                                                runOnUiThread {
-                                                                    Toast.makeText(context, "Operation successful", Toast.LENGTH_SHORT).show()
-                                                                }
-                                                            } else {
-                                                                // Show a failure Toast or handle the failure case as needed
-                                                                runOnUiThread {
-                                                                    Toast.makeText(context, "Operation failed", Toast.LENGTH_SHORT).show()
-                                                                }
-                                                            }
-                                                        } catch (e: JSONException) {
-                                                            e.printStackTrace()
-                                                            // Handle JSON parsing error
-                                                        } finally {
-                                                            // Enable the button after processing the response
-                                                            runOnUiThread {
-                                                                isClickable = true
-                                                                isEnabled = true
-                                                            }
-                                                        }
-                                                    }
-                                                })
-                                            }
-                                        }
-
-                                        else -> {
-                                            Log.d("CloudAnchor", "Cloud anchor hosting failed: $cloudAnchorId")
-                                            val failureToast = Toast.makeText(
+                        if (firstly){
+                            if (modelList.isNotEmpty()) {
+                                for (anchorData in modelList) {
+                                    instructionText.text = "Resolving. . ."
+                                    val anchorId = anchorData.second
+                                    kmodel = anchorData.first
+                                    //val scaling = anchorData["scaling"].toString()
+                                    //Log.d("SCALE","RESOLVED SCALE STRING $scaling")
+                                    if (!anchorId.isNullOrBlank()) {
+                                        // Resolve the anchor using the anchorId
+                                        val resolvedAnchor = session.resolveCloudAnchor(anchorId)
+                                        AnchList.add(Triple(anchorId, resolvedAnchor, kmodel))
+                                        if (resolvedAnchor != null) {
+                                            val resolvedpose = resolvedAnchor.pose
+                                            Log.d("POSE RESOLVED","Resolved anchor = $resolvedAnchor")
+                                            // Anchor resolved successfully, add anchor node
+                                            //val float3Object = scaling?.let { it1 -> parseFloat3FromString(it1) }
+                                            addAnchorNode(resolvedAnchor, Float3(0.37438163f, 0.37438163f, 0.37438163f))
+                                            Log.d("Resolve", "Resolved $anchorId $kmodel")
+                                        } else {
+                                            // Handle anchor resolution failure
+                                            val resolutionFailureToast = Toast.makeText(
                                                 context,
-                                                "Cloud anchor hosting failed: $cloudAnchorId",
+                                                "Failed to resolve anchor: $anchorId",
                                                 Toast.LENGTH_LONG
                                             )
-                                            failureToast.show()
-                                            // Enable the button after showing the toast
-                                            runOnUiThread {
-                                                isClickable = true
-                                                isEnabled = true
+                                            resolutionFailureToast.show()
+                                            Log.d("CloudAnchor", "Failed to resolve anchor: $anchorId")
+                                            Log.d("CloudAnchor", "Failed to resolve anchor: $anchorId")
+                                        }
+                                    }
+                                }
+                                //cloudAnchorsList = modelList.map { Pair(it.first as CloudAnchorNode, it.second) }.toMutableList()
+                                firstly=false
+                            }
+
+                        } else {
+                            Log.d("MODEL LIST = ", "$modelList")
+                            Log.d("ANCH LIST = ", "$AnchList")
+                            if (modelList.size < AnchList.size) {
+                                val iterator = AnchList.iterator()
+                                while (iterator.hasNext()) {
+                                    val (cloudAnchorNode, resolvedAnchor, kmodel) = iterator.next()
+                                    // Check if the cloudAnchorNode is missing
+                                    if (!modelList.any { it.second == cloudAnchorNode }) {
+                                        // Get the associated anchor from AnchList
+                                        val anchorToRemove = resolvedAnchor
+                                        // Iterate over the children of sceneView to find the corresponding anchor
+                                        sceneView.childNodes.forEach { anchorNode ->
+                                            if (anchorNode is AnchorNode && anchorNode.anchor == anchorToRemove) {
+                                                // Remove the anchor node from the sceneView
+                                                anchorNode.parent = null
+                                                anchorNode.destroy()
+                                                iterator.remove() // Remove the element using the iterator
+                                                Log.d("Anchor Removed", "Anchor associated with CloudAnchorNode $cloudAnchorNode removed")
+                                                return@forEach
                                             }
                                         }
                                     }
                                 }
-                            })
+                            }
+                            // Check if modelList is larger than cloudAnchorsList
+                            else if (modelList.size > AnchList.size) {
+                                Log.d("MODEL MAGG ANCH", "SONO QUI")
+                                for (anchorData in modelList) {
+                                    val anchorId = anchorData.second
+                                    // Check if the cloud anchor ID is already in AnchList
+                                    if (!AnchList.any { it.first == anchorId }) {
+                                        Log.d("MODEL MAGG ANCH", "ORA SONO QUI")
+                                        kmodel = anchorData.first
+
+                                        // The cloud anchor is not in AnchList, resolve it
+                                        val resolvedAnchor = session.resolveCloudAnchor(anchorId)
+                                        if (resolvedAnchor != null) {
+                                            // Add the resolved anchor to AnchList
+                                            AnchList.add(Triple(anchorId, resolvedAnchor, anchorData.first))
+                                            // Add the anchor node to the sceneView
+                                            addAnchorNode(resolvedAnchor, Float3(0.37438163f, 0.37438163f, 0.37438163f))
+                                            Log.d("New Anchor Added", "New anchor resolved and added: $anchorId")
+                                        } else {
+                                            // Handle anchor resolution failure
+                                            Log.e("Anchor Resolution", "Failed to resolve anchor: $anchorId")
+                                            Toast.makeText(context, "Failed to resolve anchor: $anchorId", Toast.LENGTH_LONG).show()
+                                        }
+                                    }
+                                }
+                            }
+                            // Check if modelList has the same size as AnchList
+                            else {
+                                for ((index, anchorData) in modelList.withIndex()) {
+                                    val (modelName, anchorId) = anchorData
+                                    val (oldAnchorId, oldResolvedAnchor, oldModelName) = AnchList[index]
+
+                                    if (anchorId != oldAnchorId) {
+                                        // The anchor has been updated, remove the old anchor node
+                                        sceneView.childNodes.forEach { anchorNode ->
+                                            if (anchorNode is AnchorNode && anchorNode.anchor == oldResolvedAnchor) {
+                                                anchorNode.parent = null
+                                                anchorNode.destroy()
+                                                Log.d("Old Anchor Removed", "Old anchor associated with CloudAnchorNode $oldAnchorId removed")
+                                                return@forEach
+                                            }
+                                        }
+
+                                        // Resolve the new anchor
+                                        val resolvedAnchor = session.resolveCloudAnchor(anchorId)
+                                        if (resolvedAnchor != null) {
+                                            // Update AnchList with the new anchor
+                                            AnchList[index] = Triple(anchorId, resolvedAnchor, modelName)
+                                            // Add the new anchor node to the sceneView
+                                            addAnchorNode(resolvedAnchor, Float3(0.37438163f, 0.37438163f, 0.37438163f))
+                                            Log.d("Anchor Updated", "Anchor $anchorId updated with new data")
+                                        } else {
+                                            // Handle anchor resolution failure
+                                            Log.e("Anchor Resolution", "Failed to resolve anchor: $anchorId")
+                                            Toast.makeText(context, "Failed to resolve anchor: $anchorId", Toast.LENGTH_LONG).show()
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
 
+                    override fun onCancelled(databaseError: DatabaseError) {
+                        // Handle database error
+                        Log.w("Firebase", "loadData:onCancelled", databaseError.toException())
+                    }
                 }
+
+                sessionReference.addValueEventListener(sessionListener)
+
+
+
+                instructionText.text = ""
             }
         }
+
+        /*// No anchor ID passed, proceed with hosting logic
+        b1 = findViewById<Button?>(R.id.hostButton).apply {
+            setOnClickListener {
+
+                // Disable the button during the onClickListener execution
+                isClickable = false
+                isEnabled = false
+
+                val session = sceneView.session ?: return@setOnClickListener
+                val frame = sceneView.frame ?: return@setOnClickListener
+
+                if (sceneView.session?.estimateFeatureMapQualityForHosting(frame.camera.pose) == Session.FeatureMapQuality.INSUFFICIENT) {
+                    val insufficientVisualDataToast = Toast.makeText(
+                        context,
+                        R.string.insufficient_visual_data,
+                        Toast.LENGTH_LONG
+                    )
+                    insufficientVisualDataToast.show()
+                    Log.d("CloudAnchor", "Insufficient visual data for hosting")
+                    // Enable the button after showing the toast
+                    isClickable = true
+                    isEnabled = true
+
+                    return@setOnClickListener
+                }
+
+                val anchorDataList = mutableListOf<JSONObject>()
+
+                // Iterate over anchorsList
+                for ((anchorNode, selectedModel, scaling) in anchorsList) {
+                    val session = sceneView.session ?: continue
+
+                    if (anchorNode != null) {
+                        sceneView.addChildNode(CloudAnchorNode(sceneView.engine, anchorNode.anchor).apply {
+                            isScaleEditable = false
+
+                            isRotationEditable=false
+                            host(session) { cloudAnchorId, state ->
+                                Log.d("CloudAnchor", "STATE: $state, CloudAnchorId: $cloudAnchorId")
+                                when (state) {
+                                    Anchor.CloudAnchorState.SUCCESS -> {
+                                        Log.d("CloudAnchor", "Cloud anchor hosted successfully: $cloudAnchorId")
+
+                                        // Create a JSON object for the anchor data
+                                        val anchorData = JSONObject().apply {
+                                            put("anchor_id", cloudAnchorId)
+                                            put("model", selectedModel)
+                                            put("scaling", scaling)
+                                        }
+
+                                        // Add the anchor data to the list
+                                        anchorDataList.add(anchorData)
+
+                                        Log.d("Actual Anchor Data List", "$anchorDataList")
+
+
+                                        // Check if all anchors are hosted successfully
+                                        if (anchorDataList.size == anchorsList.size) {
+                                            // All anchors hosted, send the data to the server
+                                            val projectTitle = intent.getStringExtra("projectTitle")
+
+                                            // Create a JSON object to send to the server
+                                            val requestBody = JSONObject().apply {
+                                                put("anchors", anchorDataList)
+                                                put("project_title", projectTitle)
+                                            }
+
+                                            val sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
+                                            val authToken = sharedPreferences.getString("jwtToken", "")
+
+                                            // Make a POST request to the Flask /anchors endpoint
+                                            val client = OkHttpClient()
+                                            val request = Request.Builder()
+                                                .url("https://frafortu.pythonanywhere.com/project")
+                                                .header("Content-Type", "application/json")
+                                                .header("Authorization", "Bearer $authToken") // Include the JWT in the Authorization header
+                                                .post(RequestBody.create("application/json".toMediaTypeOrNull(), requestBody.toString()))
+                                                .build()
+
+                                            client.newCall(request).enqueue(object : Callback {
+                                                override fun onFailure(call: Call, e: IOException) {
+                                                    e.printStackTrace()
+                                                    // Handle failure
+                                                }
+
+                                                override fun onResponse(call: Call, response: Response) {
+                                                    // Handle the response from the server
+                                                    val responseBody = response.body?.string()
+                                                    Log.d("Response", responseBody ?: "Response body is null")
+
+                                                    try {
+                                                        val jsonResponse = JSONObject(responseBody)
+                                                        val success = jsonResponse.optBoolean("success", false)
+
+                                                        if (success) {
+                                                            // Show a success Toast
+                                                            runOnUiThread {
+                                                                Toast.makeText(context, "Operation successful", Toast.LENGTH_SHORT).show()
+                                                            }
+                                                        } else {
+                                                            // Show a failure Toast or handle the failure case as needed
+                                                            runOnUiThread {
+                                                                Toast.makeText(context, "Operation failed", Toast.LENGTH_SHORT).show()
+                                                            }
+                                                        }
+                                                    } catch (e: JSONException) {
+                                                        e.printStackTrace()
+                                                        // Handle JSON parsing error
+                                                    } finally {
+                                                        // Enable the button after processing the response
+                                                        runOnUiThread {
+                                                            isClickable = true
+                                                            isEnabled = true
+                                                        }
+                                                    }
+                                                }
+                                            })
+                                        }
+                                    }
+
+                                    else -> {
+                                        Log.d("CloudAnchor", "Cloud anchor hosting failed: $cloudAnchorId")
+                                        val failureToast = Toast.makeText(
+                                            context,
+                                            "Cloud anchor hosting failed: $cloudAnchorId",
+                                            Toast.LENGTH_LONG
+                                        )
+                                        failureToast.show()
+                                        // Enable the button after showing the toast
+                                        runOnUiThread {
+                                            isClickable = true
+                                            isEnabled = true
+                                        }
+                                    }
+                                }
+                            }
+                        })
+                    }
+                }
+            }
+        }*/
 
 
         b = findViewById<ImageButton?>(R.id.button1).apply { setOnClickListener{kmodel="https://firebasestorage.googleapis.com/v0/b/mac-proj-5f6eb.appspot.com/o/black_sofa.glb?alt=media&token=e1368472-f80b-491d-ad78-2854286c95ea"}  }
@@ -694,7 +768,8 @@ class ARSessionActivity: AppCompatActivity(R.layout.ar_activity) {
 
         // Add the anchor and the selected model to the list
         val newAnchorTriple = Triple(anchorNode, selectedModel, scaling)
-        anchorsList.add(newAnchorTriple as Triple<AnchorNode?, String, Float3>)
+        val newAnchorPair = Pair(anchorNode, selectedModel)
+        anchorsList.add(newAnchorPair as Pair<AnchorNode, String>)
 
         // Log the contents of the anchorsList
         Log.d("AnchorsList", "Added new anchor: $newAnchorTriple. AnchorsList: $anchorsList")
@@ -749,7 +824,7 @@ class ARSessionActivity: AppCompatActivity(R.layout.ar_activity) {
                                 else -> {}
                             }
 
-                       }
+                        }
                     }
                 })
             }
@@ -781,29 +856,6 @@ class ARSessionActivity: AppCompatActivity(R.layout.ar_activity) {
             }
         })
     }
-
-    // Function to update the corresponding anchor field in Firebase
-    fun updateFirebaseAnchor(oldAnchor: Anchor, newAnchor: Anchor, cloudAnchorId: String) {
-        Log.d("UPDATE", "UPDATING $oldAnchor in $newAnchor")
-        // Find the entry in Firebase corresponding to the old anchor
-        val query = databaseReference.orderByChild("anchor").equalTo(oldAnchor.toString())
-        query.addListenerForSingleValueEvent(object : ValueEventListener {
-            override fun onDataChange(dataSnapshot: DataSnapshot) {
-                for (modelSnapshot in dataSnapshot.children) {
-                    // Update the cloudAnchor field with the new cloud anchor ID
-                    modelSnapshot.ref.child("cloudAnchor").setValue(cloudAnchorId)
-                    // Update the anchor field with the new anchor's details
-                    modelSnapshot.ref.child("anchor").setValue(newAnchor.toString())
-                }
-            }
-
-            override fun onCancelled(databaseError: DatabaseError) {
-                // Handle database error
-                Log.e("Firebase", "updateFirebaseAnchor:onCancelled", databaseError.toException())
-            }
-        })
-    }
-
 
     fun parseFloat3FromString(input: String): Float3? {
         try {
