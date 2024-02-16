@@ -23,6 +23,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.view.doOnAttach
 import androidx.core.view.isGone
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.google.ar.core.Anchor
@@ -207,19 +208,6 @@ class AReSessionActivity: AppCompatActivity(R.layout.ar_activity) {
                 }
 
                 override fun onSingleTapConfirmed(e: MotionEvent, node: Node?) {
-                    if (node == null) {
-                        val hitResultList = frame?.hitTest(e.x, e.y)
-                        hitResultList?.firstOrNull { hitResult ->
-                            hitResult.trackable is Plane && (hitResult.trackable as Plane).isPoseInPolygon(hitResult.hitPose)
-                        }?.let { hitResult ->
-                            // Create an anchor at the hit test point on the detected plane
-                            val anchor = hitResult.createAnchor()
-                            addAnchorNode(anchor, Float3(0.37438163f, 0.37438163f, 0.37438163f))
-                            addModelToFirebase(kmodel,anchor)
-                        }
-
-
-                    }
                 }
 
                 override fun onDoubleTap(e: MotionEvent, node: Node?) {
@@ -227,24 +215,7 @@ class AReSessionActivity: AppCompatActivity(R.layout.ar_activity) {
                 }
 
                 override fun onDoubleTapEvent(e: MotionEvent, node: Node?) {
-                    if(node!=null)
-                    {
-                        Log.d("Pose", "Product pose: MI HAI PRESO")
-                        Log.d("Node", "Node= $node")
-                        val dad: AnchorNode = node.parent as AnchorNode
-                        val dadanchor : Anchor = dad.anchor
-                        Log.d("DAD", "DAD= $dad")
-                        Log.d("DAD", "DAD ANCHOR= $dadanchor")
 
-                        anchorsList.removeIf { (anchor, _) ->
-                            anchor.toString() == dad.toString()
-
-                        }
-                        node.parent=null
-                        node.destroy()
-                        deleteModelFromFirebase(node,dadanchor)
-
-                    }
                 }
 
                 override fun onContextClick(e: MotionEvent, node: Node?) {
@@ -319,30 +290,9 @@ class AReSessionActivity: AppCompatActivity(R.layout.ar_activity) {
                 }
 
                 override fun onScale(detector: ScaleGestureDetector, e: MotionEvent, node: Node?) {
-                    if (node is ModelNode) {
-                        scaleModelNode(node, detector)
-                    } else if (node is AnchorNode) {
-                        // Check if one of the children is a ModelNode
-                        val modelNodeChild = node.childNodes.firstOrNull { it is ModelNode } as? ModelNode
-                        modelNodeChild?.let { scaleModelNode(it, detector) }
-                    }
                 }
 
                 override fun onScaleEnd(detector: ScaleGestureDetector, e: MotionEvent, node: Node?) {
-                    if (node is ModelNode) {
-                        scaleModelNode(node, detector)
-
-                        if (node.parent is AnchorNode) {
-                            updateAnchorList(node.parent as AnchorNode, node)
-                        }
-                    } else if (node is AnchorNode) {
-                        // Check if one of the children is a ModelNode
-                        val modelNodeChild = node.childNodes.firstOrNull { it is ModelNode } as? ModelNode
-                        modelNodeChild?.let {
-                            scaleModelNode(it, detector)
-                            updateAnchorList(node, it)
-                        }
-                    }
                 }
 
                 private fun scaleModelNode(modelNode: ModelNode, detector: ScaleGestureDetector) {
@@ -391,8 +341,11 @@ class AReSessionActivity: AppCompatActivity(R.layout.ar_activity) {
 
         // We have to resolve session
         b1 = findViewById<Button?>(R.id.hostButton).apply {
-            text = "SYNC"
+            text = "START SYNC"
             setOnClickListener {
+                isClickable = false
+                isEnabled = false
+                isVisible = false
                 val session = sceneView.session ?: return@setOnClickListener
                 val sessionReference: DatabaseReference = FirebaseDatabase.getInstance().getReference("sessions/$sessionId/models")
                 Log.d("Firebase", "${sessionReference.toString()}")
@@ -413,10 +366,11 @@ class AReSessionActivity: AppCompatActivity(R.layout.ar_activity) {
                             Log.d("InvokeSuccess -> ", "contenuto lista: ${modelList}")
 
                         }
+                        instructionText.text = "Resolving. . ."
                         if (firstly){
                             if (modelList.isNotEmpty()) {
                                 for (anchorData in modelList) {
-                                    instructionText.text = "Resolving. . ."
+                                    //instructionText.text = "Resolving. . ."
                                     val anchorId = anchorData.second
                                     kmodel = anchorData.first
                                     //val scaling = anchorData["scaling"].toString()
@@ -447,9 +401,11 @@ class AReSessionActivity: AppCompatActivity(R.layout.ar_activity) {
                                 }
                                 //cloudAnchorsList = modelList.map { Pair(it.first as CloudAnchorNode, it.second) }.toMutableList()
                                 firstly=false
+                                instructionText.text = "Resolved and synchronized"
                             }
 
                         } else {
+                            instructionText.text = "Synching . . ."
                             Log.d("MODEL LIST = ", "$modelList")
                             Log.d("ANCH LIST = ", "$AnchList")
                             if (modelList.size < AnchList.size) {
@@ -542,6 +498,7 @@ class AReSessionActivity: AppCompatActivity(R.layout.ar_activity) {
                                         }
                                     }
                                 }
+                                instructionText.text = "Resolved and synchronized"
                             }
                         }
                     }
@@ -554,9 +511,6 @@ class AReSessionActivity: AppCompatActivity(R.layout.ar_activity) {
 
                 sessionReference.addValueEventListener(sessionListener)
 
-
-
-                instructionText.text = ""
             }
         }
 
@@ -745,8 +699,8 @@ class AReSessionActivity: AppCompatActivity(R.layout.ar_activity) {
             AnchorNode(sceneView.engine, anchor)
                 .apply {
                     isScaleEditable = false
-                    isEditable = true
-                    isPositionEditable = true
+                    isEditable = false
+                    isPositionEditable = false
                     isRotationEditable = false
 
                     lifecycleScope.launch {
@@ -759,11 +713,13 @@ class AReSessionActivity: AppCompatActivity(R.layout.ar_activity) {
                             ).apply {
                                 isShadowCaster = true  // Enable casting shadows
                                 isShadowReceiver = true  // Enable receiving shadows
-                                isEditable = true
-                                isRotationEditable = false
+                                isEditable = false
                                 scaling?.let {
                                     this.scale = it
                                 }
+
+                                isScaleEditable = false
+                                isRotationEditable = false
                             }
 
                             // Add the model node as a child of the anchor node

@@ -23,6 +23,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.view.doOnAttach
 import androidx.core.view.isGone
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.google.ar.core.Anchor
@@ -206,6 +207,7 @@ class ARSessionActivity: AppCompatActivity(R.layout.ar_activity) {
 
                 override fun onSingleTapConfirmed(e: MotionEvent, node: Node?) {
                     if (node == null) {
+                        instructionText.text = "Updating session. . ."
                         val hitResultList = frame?.hitTest(e.x, e.y)
                         hitResultList?.firstOrNull { hitResult ->
                             hitResult.trackable is Plane && (hitResult.trackable as Plane).isPoseInPolygon(hitResult.hitPose)
@@ -227,6 +229,8 @@ class ARSessionActivity: AppCompatActivity(R.layout.ar_activity) {
                 override fun onDoubleTapEvent(e: MotionEvent, node: Node?) {
                     if(node!=null)
                     {
+                        instructionText.text = "Updating session. . ."
+
                         Log.d("Pose", "Product pose: MI HAI PRESO")
                         Log.d("Node", "Node= $node")
                         val dad: AnchorNode = node.parent as AnchorNode
@@ -254,6 +258,8 @@ class ARSessionActivity: AppCompatActivity(R.layout.ar_activity) {
                     e: MotionEvent,
                     node: Node?
                 ) {
+                    instructionText.text = "Updating session. . ."
+
                     if (node != null) {
                         if (node.parent is AnchorNode){
                             Log.d("ANCHOR NODE OLD (in teoria)", "${anchorNode?.anchor}")
@@ -476,6 +482,9 @@ class ARSessionActivity: AppCompatActivity(R.layout.ar_activity) {
         } else {
             // No anchor ID passed, proceed with hosting logic
             b1 = findViewById<Button?>(R.id.hostButton).apply {
+                isClickable = false
+                isEnabled = false
+                isVisible = false
                 setOnClickListener {
 
                     // Disable the button during the onClickListener execution
@@ -743,6 +752,7 @@ class ARSessionActivity: AppCompatActivity(R.layout.ar_activity) {
                                     )
 
                                     databaseReference.child(newModelKey).setValue(newModelMap)
+                                    instructionText.text = "Session Updated"
 
 
                                 }
@@ -771,6 +781,7 @@ class ARSessionActivity: AppCompatActivity(R.layout.ar_activity) {
                         // Remove the model from the database
                         modelSnapshot.ref.removeValue()
                         println("Model deleted from session successfully!")
+                        instructionText.text = "Session Updated"
                         return
                     }
                 }
@@ -796,6 +807,8 @@ class ARSessionActivity: AppCompatActivity(R.layout.ar_activity) {
                     // Update the anchor field with the new anchor's details
                     modelSnapshot.ref.child("anchor").setValue(newAnchor.toString())
                 }
+                instructionText.text = "Session Updated"
+
             }
 
             override fun onCancelled(databaseError: DatabaseError) {

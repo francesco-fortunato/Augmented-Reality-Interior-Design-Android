@@ -23,6 +23,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.view.doOnAttach
 import androidx.core.view.isGone
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.google.ar.core.Anchor
@@ -378,6 +379,9 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
             b1 = findViewById<Button?>(R.id.hostButton).apply {
                 text = "LOAD PROJECT"
                 setOnClickListener {
+                    isClickable = false
+                    isEnabled = false
+                    isVisible = false
                     val session = sceneView.session ?: return@setOnClickListener
 
                     for (anchorData in anchorIdList) {
