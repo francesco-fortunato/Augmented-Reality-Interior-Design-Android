@@ -257,7 +257,7 @@ class ARSessionActivity: AppCompatActivity(R.layout.ar_activity) {
                     if (node != null) {
                         if (node.parent is AnchorNode){
                             Log.d("ANCHOR NODE OLD (in teoria)", "${anchorNode?.anchor}")
-                            old_anchor = anchorNode!!.anchor
+                            old_anchor = (node.parent as AnchorNode).anchor
                         }
                     }
                 }
@@ -286,19 +286,19 @@ class ARSessionActivity: AppCompatActivity(R.layout.ar_activity) {
                             Log.d("ANCHOR NODE NEW (in teoria)", "${anchorNode?.anchor}")
                             Log.d("ANCHOR NODE NEW (in teoria)", "new: ${anchorNode?.anchor?.pose}")
                             for ((anchornode, model, scaling) in anchorsList){
-                                if (anchornode.toString() == node.parent.toString()){
+                                if (anchornode.toString() == node.parent.toString() && (node.parent as AnchorNode).anchor != old_anchor){
                                     // Update the entry with the new AnchorNode
                                     anchorsList.remove(Triple(anchornode, model, scaling))
                                     anchorsList.add(Triple(node.parent as AnchorNode, model, scaling))
                                     val session = sceneView.session
                                     val frame = sceneView.frame
-                                    val newAnchor = anchorNode?.anchor
+                                    val newAnchor = (node.parent as AnchorNode).anchor
 
                                     // Check if both old and new anchors are available
                                     if (old_anchor != null && newAnchor != null) {
                                         if (frame != null && session != null) {
                                             // Host the new cloud anchor
-                                            anchorNode!!.let { anchorNode ->
+                                            (node.parent as AnchorNode).let { anchorNode ->
                                                 sceneView.addChildNode(CloudAnchorNode(sceneView.engine, anchorNode!!.anchor).apply {
                                                     isScaleEditable = false
 
@@ -689,16 +689,17 @@ class ARSessionActivity: AppCompatActivity(R.layout.ar_activity) {
                         isRotationEditable = false
                     }
                     anchorNode = this
+                    val newAnchorTriple = Triple(this, selectedModel, scaling)
+                    anchorsList.add(newAnchorTriple as Triple<AnchorNode?, String, Float3>)
+                    Log.d("AnchorsList", "Added new anchor: $newAnchorTriple. AnchorsList: $anchorsList")
+                    Log.d("AnchorsList", "new anchor pose: ${anchor.pose}")
+
                 }
         )
 
         // Add the anchor and the selected model to the list
-        val newAnchorTriple = Triple(anchorNode, selectedModel, scaling)
-        anchorsList.add(newAnchorTriple as Triple<AnchorNode?, String, Float3>)
 
         // Log the contents of the anchorsList
-        Log.d("AnchorsList", "Added new anchor: $newAnchorTriple. AnchorsList: $anchorsList")
-        Log.d("AnchorsList", "new anchor pose: ${anchor.pose}")
     }
 
     fun addModelToFirebase(modelString: String,anchor: Anchor) {

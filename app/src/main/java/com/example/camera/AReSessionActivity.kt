@@ -502,26 +502,36 @@ class AReSessionActivity: AppCompatActivity(R.layout.ar_activity) {
                             }
                             // Check if modelList has the same size as AnchList
                             else {
-                                for ((index, anchorData) in modelList.withIndex()) {
+                                for (anchorData in modelList) {
                                     val (modelName, anchorId) = anchorData
-                                    val (oldAnchorId, oldResolvedAnchor, oldModelName) = AnchList[index]
-
-                                    if (anchorId != oldAnchorId) {
-                                        // The anchor has been updated, remove the old anchor node
-                                        sceneView.childNodes.forEach { anchorNode ->
-                                            if (anchorNode is AnchorNode && anchorNode.anchor == oldResolvedAnchor) {
-                                                anchorNode.parent = null
-                                                anchorNode.destroy()
-                                                Log.d("Old Anchor Removed", "Old anchor associated with CloudAnchorNode $oldAnchorId removed")
-                                                return@forEach
+                                    // Search for the corresponding oldAnchorId in AnchList
+                                    val index = AnchList.indexOfFirst { it.first == anchorId }
+                                    if (index == -1) {
+                                        kmodel = modelName
+                                        // The anchor is not found in AnchList, we have to update AnchList
+                                        // Remove the old anchor node if it exists
+                                        val iterator = AnchList.iterator()
+                                        while (iterator.hasNext()) {
+                                            val (oldAnchorId, oldResolvedAnchor, _) = iterator.next()
+                                            if (oldAnchorId !in modelList.map { it.second }) {
+                                                // Remove the old anchor node
+                                                sceneView.childNodes.forEach { anchorNode ->
+                                                    if (anchorNode is AnchorNode && anchorNode.anchor == oldResolvedAnchor) {
+                                                        anchorNode.parent = null
+                                                        anchorNode.destroy()
+                                                        Log.d("Old Anchor Removed", "Old anchor associated with CloudAnchorNode $oldAnchorId removed")
+                                                        return@forEach
+                                                    }
+                                                }
+                                                iterator.remove() // Remove the old anchor from AnchList
                                             }
                                         }
 
                                         // Resolve the new anchor
                                         val resolvedAnchor = session.resolveCloudAnchor(anchorId)
                                         if (resolvedAnchor != null) {
-                                            // Update AnchList with the new anchor
-                                            AnchList[index] = Triple(anchorId, resolvedAnchor, modelName)
+                                            // Add the new anchor to AnchList
+                                            AnchList.add(Triple(anchorId, resolvedAnchor, modelName))
                                             // Add the new anchor node to the sceneView
                                             addAnchorNode(resolvedAnchor, Float3(0.37438163f, 0.37438163f, 0.37438163f))
                                             Log.d("Anchor Updated", "Anchor $anchorId updated with new data")
