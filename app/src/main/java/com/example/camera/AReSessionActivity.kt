@@ -63,7 +63,7 @@ import org.json.JSONException
 import org.json.JSONObject
 import java.io.IOException
 
-private var kmodel="https://firebasestorage.googleapis.com/v0/b/mac-proj-5f6eb.appspot.com/o/black_sofa.glb?alt=media&token=e1368472-f80b-491d-ad78-2854286c95ea"
+private var kmodel="https://firebasestorage.googleapis.com/v0/b/mac-proj-5f6eb.appspot.com/o/black_sofa.glb?alt=media&token=fbb4bcd3-388a-42bf-b328-4f2911aac288"
 class AReSessionActivity: AppCompatActivity(R.layout.ar_activity) {
 
     lateinit var b : ImageButton
@@ -145,11 +145,13 @@ class AReSessionActivity: AppCompatActivity(R.layout.ar_activity) {
                     true -> Config.DepthMode.AUTOMATIC
                     else -> Config.DepthMode.DISABLED
                 }
-                config.instantPlacementMode = Config.InstantPlacementMode.DISABLED
+                config.updateMode = Config.UpdateMode.LATEST_CAMERA_IMAGE
+                config.instantPlacementMode = Config.InstantPlacementMode.LOCAL_Y_UP
                 config.lightEstimationMode = Config.LightEstimationMode.ENVIRONMENTAL_HDR
                 config.cloudAnchorMode= Config.CloudAnchorMode.ENABLED
                 config.geospatialMode = Config.GeospatialMode.DISABLED
                 config.planeFindingMode = Config.PlaneFindingMode.HORIZONTAL
+
                 session.configure(config)
             }
 
@@ -657,12 +659,12 @@ class AReSessionActivity: AppCompatActivity(R.layout.ar_activity) {
         }*/
 
 
-        b = findViewById<ImageButton?>(R.id.button1).apply { setOnClickListener{kmodel="https://firebasestorage.googleapis.com/v0/b/mac-proj-5f6eb.appspot.com/o/black_sofa.glb?alt=media&token=e1368472-f80b-491d-ad78-2854286c95ea"}  }
-        b = findViewById<ImageButton?>(R.id.button2).apply { setOnClickListener{kmodel="https://firebasestorage.googleapis.com/v0/b/mac-proj-5f6eb.appspot.com/o/folding_table.glb?alt=media&token=b7474aa2-bd90-4884-a6ef-f55539088d49"}  }
-        b = findViewById<ImageButton?>(R.id.button3).apply { setOnClickListener{kmodel="https://firebasestorage.googleapis.com/v0/b/mac-proj-5f6eb.appspot.com/o/office_chair.glb?alt=media&token=7bb7eee6-b57a-4e1e-ac21-0f159e2624bb"}  }
-        b = findViewById<ImageButton?>(R.id.button4).apply { setOnClickListener{kmodel="https://firebasestorage.googleapis.com/v0/b/mac-proj-5f6eb.appspot.com/o/black_vase.glb?alt=media&token=62754152-5452-4126-b01e-7b9e3aa74f0e"}  }
-        b = findViewById<ImageButton?>(R.id.button5).apply { setOnClickListener{kmodel="https://firebasestorage.googleapis.com/v0/b/mac-proj-5f6eb.appspot.com/o/sideboard.glb?alt=media&token=dc717563-3459-42e4-91e6-fcf63d48a9bd"}  }
-        b = findViewById<ImageButton?>(R.id.button6).apply { setOnClickListener{kmodel="https://firebasestorage.googleapis.com/v0/b/mac-proj-5f6eb.appspot.com/o/sofa1.glb?alt=media&token=0e299740-c6bc-46e5-9211-713a09e67bc7"}  }
+        b = findViewById<ImageButton?>(R.id.button1).apply { setOnClickListener{kmodel="https://firebasestorage.googleapis.com/v0/b/mac-proj-5f6eb.appspot.com/o/black_sofa.glb?alt=media&token=fbb4bcd3-388a-42bf-b328-4f2911aac288"}  }
+        b = findViewById<ImageButton?>(R.id.button2).apply { setOnClickListener{kmodel="https://firebasestorage.googleapis.com/v0/b/mac-proj-5f6eb.appspot.com/o/folding_table.glb?alt=media&token=23630db0-702c-44d9-afe5-64c279d77d6a"}  }
+        b = findViewById<ImageButton?>(R.id.button3).apply { setOnClickListener{kmodel="https://firebasestorage.googleapis.com/v0/b/mac-proj-5f6eb.appspot.com/o/office_chair.glb?alt=media&token=52fa1f98-1eda-4774-9df2-35896d6f4d9a"}  }
+        b = findViewById<ImageButton?>(R.id.button4).apply { setOnClickListener{kmodel="https://firebasestorage.googleapis.com/v0/b/mac-proj-5f6eb.appspot.com/o/black_vase.glb?alt=media&token=baceaaed-f61d-4e0a-8d1d-565f4a37896a"}  }
+        b = findViewById<ImageButton?>(R.id.button5).apply { setOnClickListener{kmodel="https://firebasestorage.googleapis.com/v0/b/mac-proj-5f6eb.appspot.com/o/sideboard.glb?alt=media&token=c52d7da0-fb02-43c4-92bb-1ec48ca13293"}  }
+        b = findViewById<ImageButton?>(R.id.button6).apply { setOnClickListener{kmodel="https://firebasestorage.googleapis.com/v0/b/mac-proj-5f6eb.appspot.com/o/sofa1.glb?alt=media&token=2e59a4a5-f09b-4185-953b-6b7ac7b848fc"}  }
 
 
         horiz_hide_show = findViewById(R.id.buttonsContainer)
@@ -709,7 +711,7 @@ class AReSessionActivity: AppCompatActivity(R.layout.ar_activity) {
                             val modelNode = ModelNode(
                                 modelInstance = modelInstance,
                                 scaleToUnits = null,
-                                centerOrigin = Position(y = 0.0f)
+                                centerOrigin = null
                             ).apply {
                                 isShadowCaster = true  // Enable casting shadows
                                 isShadowReceiver = true  // Enable receiving shadows

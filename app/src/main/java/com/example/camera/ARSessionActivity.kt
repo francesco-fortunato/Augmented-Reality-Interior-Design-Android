@@ -62,7 +62,7 @@ import org.json.JSONException
 import org.json.JSONObject
 import java.io.IOException
 
-private var kmodel="https://firebasestorage.googleapis.com/v0/b/mac-proj-5f6eb.appspot.com/o/black_sofa.glb?alt=media&token=e1368472-f80b-491d-ad78-2854286c95ea"
+private var kmodel="https://firebasestorage.googleapis.com/v0/b/mac-proj-5f6eb.appspot.com/o/black_sofa.glb?alt=media&token=fbb4bcd3-388a-42bf-b328-4f2911aac288"
 class ARSessionActivity: AppCompatActivity(R.layout.ar_activity) {
 
     lateinit var b : ImageButton
@@ -152,17 +152,17 @@ class ARSessionActivity: AppCompatActivity(R.layout.ar_activity) {
             }
 
             onSessionUpdated = { _, frame ->
-                //sceneView.cameraStream?.isDepthOcclusionEnabled = true
-                //Log.d("mode", sceneView.cameraStream?.isDepthOcclusionEnabled.toString())
-                /*if (frame != null && anchorNode != null) {
-                    val quality = sceneView.session?.estimateFeatureMapQualityForHosting(frame.camera.pose)
-                    instructionText.text = when (quality) {
-                        Session.FeatureMapQuality.INSUFFICIENT -> "Insufficient visual data - move the device around the object and try again"
-                        Session.FeatureMapQuality.SUFFICIENT -> "Sufficient visual data. Continue moving the device around the object to get better results"
-                        Session.FeatureMapQuality.GOOD -> "Good visual data!"
-                        else -> instructionText.text // Keep the current instruction if quality is unknown
+                frame.getUpdatedTrackables(Plane::class.java).firstOrNull()?.let { _ ->
+                    if (frame != null) {
+                        val quality = sceneView.session?.estimateFeatureMapQualityForHosting(frame.camera.pose)
+                        instructionText.text = when (quality) {
+                            Session.FeatureMapQuality.INSUFFICIENT -> "Insufficient visual data - move the camera before host"
+                            Session.FeatureMapQuality.SUFFICIENT -> "Sufficient visual data. Continue moving the device around the object to get better results"
+                            Session.FeatureMapQuality.GOOD -> "Good visual data!"
+                            else -> instructionText.text // Keep the current instruction if quality is unknown
+                        }
                     }
-                }*/
+                }
             }
 
 
@@ -210,7 +210,7 @@ class ARSessionActivity: AppCompatActivity(R.layout.ar_activity) {
                         instructionText.text = "Updating session. . ."
                         val hitResultList = frame?.hitTest(e.x, e.y)
                         hitResultList?.firstOrNull { hitResult ->
-                            hitResult.trackable is Plane && (hitResult.trackable as Plane).isPoseInPolygon(hitResult.hitPose)
+                            hitResult.trackable is Plane && (hitResult.trackable as Plane).isPoseInPolygon(hitResult.hitPose) && (hitResult.trackable as Plane).type == Plane.Type.HORIZONTAL_UPWARD_FACING
                         }?.let { hitResult ->
                             // Create an anchor at the hit test point on the detected plane
                             val anchor = hitResult.createAnchor()
@@ -628,12 +628,12 @@ class ARSessionActivity: AppCompatActivity(R.layout.ar_activity) {
         }
 
 
-        b = findViewById<ImageButton?>(R.id.button1).apply { setOnClickListener{kmodel="https://firebasestorage.googleapis.com/v0/b/mac-proj-5f6eb.appspot.com/o/black_sofa.glb?alt=media&token=e1368472-f80b-491d-ad78-2854286c95ea"}  }
-        b = findViewById<ImageButton?>(R.id.button2).apply { setOnClickListener{kmodel="https://firebasestorage.googleapis.com/v0/b/mac-proj-5f6eb.appspot.com/o/folding_table.glb?alt=media&token=b7474aa2-bd90-4884-a6ef-f55539088d49"}  }
-        b = findViewById<ImageButton?>(R.id.button3).apply { setOnClickListener{kmodel="https://firebasestorage.googleapis.com/v0/b/mac-proj-5f6eb.appspot.com/o/office_chair.glb?alt=media&token=7bb7eee6-b57a-4e1e-ac21-0f159e2624bb"}  }
-        b = findViewById<ImageButton?>(R.id.button4).apply { setOnClickListener{kmodel="https://firebasestorage.googleapis.com/v0/b/mac-proj-5f6eb.appspot.com/o/black_vase.glb?alt=media&token=62754152-5452-4126-b01e-7b9e3aa74f0e"}  }
-        b = findViewById<ImageButton?>(R.id.button5).apply { setOnClickListener{kmodel="https://firebasestorage.googleapis.com/v0/b/mac-proj-5f6eb.appspot.com/o/sideboard.glb?alt=media&token=dc717563-3459-42e4-91e6-fcf63d48a9bd"}  }
-        b = findViewById<ImageButton?>(R.id.button6).apply { setOnClickListener{kmodel="https://firebasestorage.googleapis.com/v0/b/mac-proj-5f6eb.appspot.com/o/sofa1.glb?alt=media&token=0e299740-c6bc-46e5-9211-713a09e67bc7"}  }
+        b = findViewById<ImageButton?>(R.id.button1).apply { setOnClickListener{kmodel="https://firebasestorage.googleapis.com/v0/b/mac-proj-5f6eb.appspot.com/o/black_sofa.glb?alt=media&token=fbb4bcd3-388a-42bf-b328-4f2911aac288"}  }
+        b = findViewById<ImageButton?>(R.id.button2).apply { setOnClickListener{kmodel="https://firebasestorage.googleapis.com/v0/b/mac-proj-5f6eb.appspot.com/o/folding_table.glb?alt=media&token=23630db0-702c-44d9-afe5-64c279d77d6a"}  }
+        b = findViewById<ImageButton?>(R.id.button3).apply { setOnClickListener{kmodel="https://firebasestorage.googleapis.com/v0/b/mac-proj-5f6eb.appspot.com/o/office_chair.glb?alt=media&token=52fa1f98-1eda-4774-9df2-35896d6f4d9a"}  }
+        b = findViewById<ImageButton?>(R.id.button4).apply { setOnClickListener{kmodel="https://firebasestorage.googleapis.com/v0/b/mac-proj-5f6eb.appspot.com/o/black_vase.glb?alt=media&token=baceaaed-f61d-4e0a-8d1d-565f4a37896a"}  }
+        b = findViewById<ImageButton?>(R.id.button5).apply { setOnClickListener{kmodel="https://firebasestorage.googleapis.com/v0/b/mac-proj-5f6eb.appspot.com/o/sideboard.glb?alt=media&token=c52d7da0-fb02-43c4-92bb-1ec48ca13293"}  }
+        b = findViewById<ImageButton?>(R.id.button6).apply { setOnClickListener{kmodel="https://firebasestorage.googleapis.com/v0/b/mac-proj-5f6eb.appspot.com/o/sofa1.glb?alt=media&token=2e59a4a5-f09b-4185-953b-6b7ac7b848fc"}  }
 
 
         horiz_hide_show = findViewById(R.id.buttonsContainer)
@@ -680,7 +680,7 @@ class ARSessionActivity: AppCompatActivity(R.layout.ar_activity) {
                             val modelNode = ModelNode(
                                 modelInstance = modelInstance,
                                 scaleToUnits = null,
-                                centerOrigin = Position(y = 0.0f)
+                                centerOrigin = null
                             ).apply {
                                 isShadowCaster = true  // Enable casting shadows
                                 isShadowReceiver = true  // Enable receiving shadows

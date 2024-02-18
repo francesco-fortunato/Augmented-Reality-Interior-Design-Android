@@ -68,13 +68,6 @@
         <activity android:name=".ProductActivity" />
 
         <activity
-            android:name=".MainActivity"
-            android:exported="true"
-            android:label="@string/app_name"
-            android:theme="@style/Theme.Camera">
-        </activity>
-
-        <activity
             android:exported="true"
             android:name=".SharedProjectsActivity"
             android:label="@string/app_name"
