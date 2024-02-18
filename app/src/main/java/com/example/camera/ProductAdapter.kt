@@ -33,7 +33,7 @@ import kotlin.Int
         val product: Product = productList[i]
         productViewHolder.textViewTitle.setText(product.title)
         productViewHolder.textViewDesc.setText(product.shortdesc)
-        productViewHolder.textViewRating.setText(String.valueOf(product.rating))
+        //productViewHolder.textViewRating.setText(String.valueOf(product.rating))
         productViewHolder.textViewPrice.setText(String.valueOf(product.price))
         productViewHolder.imageView.setImageDrawable(mCtx.resources.getDrawable(product.img))
     }
@@ -47,14 +47,14 @@ import kotlin.Int
         var imageView: ImageView
         var textViewTitle: TextView
         var textViewDesc: TextView
-        var textViewRating: TextView
+        //var textViewRating: TextView
         var textViewPrice: TextView
 
         init {
             imageView = itemView.findViewById(R.id.imageView)
             textViewTitle = itemView.findViewById(R.id.textViewTitle)
             textViewDesc = itemView.findViewById(R.id.textViewShortDesc)
-            textViewRating = itemView.findViewById(R.id.textViewRating)
+            //textViewRating = itemView.findViewById(R.id.textViewRating)
             textViewPrice = itemView.findViewById(R.id.textViewPrice)
         }
     }
