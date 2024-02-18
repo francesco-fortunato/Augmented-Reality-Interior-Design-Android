@@ -64,7 +64,7 @@ import org.json.JSONObject
 import java.io.IOException
 
 
-private var kmodel="https://sceneview.github.io/assets/models/DamagedHelmet.glb"
+private var kmodel="https://firebasestorage.googleapis.com/v0/b/mac-proj-5f6eb.appspot.com/o/black_sofa.glb?alt=media&token=e1368472-f80b-491d-ad78-2854286c95ea"
 class ARActivity : AppCompatActivity(R.layout.ar_activity) {
     lateinit var b : ImageButton
     lateinit var b1 : Button
@@ -564,7 +564,7 @@ class ARActivity : AppCompatActivity(R.layout.ar_activity) {
         b = findViewById<ImageButton?>(R.id.button1).apply { setOnClickListener{kmodel="https://firebasestorage.googleapis.com/v0/b/mac-proj-5f6eb.appspot.com/o/black_sofa.glb?alt=media&token=e1368472-f80b-491d-ad78-2854286c95ea"}  }
         b = findViewById<ImageButton?>(R.id.button2).apply { setOnClickListener{kmodel="https://firebasestorage.googleapis.com/v0/b/mac-proj-5f6eb.appspot.com/o/folding_table.glb?alt=media&token=b7474aa2-bd90-4884-a6ef-f55539088d49"}  }
         b = findViewById<ImageButton?>(R.id.button3).apply { setOnClickListener{kmodel="https://firebasestorage.googleapis.com/v0/b/mac-proj-5f6eb.appspot.com/o/office_chair.glb?alt=media&token=7bb7eee6-b57a-4e1e-ac21-0f159e2624bb"}  }
-        b = findViewById<ImageButton?>(R.id.button4).apply { setOnClickListener{kmodel="https://firebasestorage.googleapis.com/v0/b/mac-proj-5f6eb.appspot.com/o/sectional.glb?alt=media&token=d9efc97b-07ad-44aa-bd84-768a5d916062"}  }
+        b = findViewById<ImageButton?>(R.id.button4).apply { setOnClickListener{kmodel="https://firebasestorage.googleapis.com/v0/b/mac-proj-5f6eb.appspot.com/o/black_vase.glb?alt=media&token=62754152-5452-4126-b01e-7b9e3aa74f0e"}  }
         b = findViewById<ImageButton?>(R.id.button5).apply { setOnClickListener{kmodel="https://firebasestorage.googleapis.com/v0/b/mac-proj-5f6eb.appspot.com/o/sideboard.glb?alt=media&token=dc717563-3459-42e4-91e6-fcf63d48a9bd"}  }
         b = findViewById<ImageButton?>(R.id.button6).apply { setOnClickListener{kmodel="https://firebasestorage.googleapis.com/v0/b/mac-proj-5f6eb.appspot.com/o/sofa1.glb?alt=media&token=0e299740-c6bc-46e5-9211-713a09e67bc7"}  }
 

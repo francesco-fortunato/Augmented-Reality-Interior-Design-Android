@@ -113,7 +113,7 @@
                 android:id="@+id/button4"
                 android:layout_width="100dp"
                 android:layout_height="100dp"
-                android:background="@drawable/sectional"
+                android:background="@drawable/black_vase"
                 android:text="Button 2" />
 
             <!-- Button 5 -->
@@ -129,7 +129,7 @@
                 android:id="@+id/button6"
                 android:layout_width="100dp"
                 android:layout_height="100dp"
-                android:background="@drawable/wardrobe"
+                android:background="@drawable/sofa1"
                 android:text="Button 2" />
         </LinearLayout>
     </HorizontalScrollView>
