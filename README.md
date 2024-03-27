@@ -47,7 +47,7 @@ To run the Mobile-Computing-App project, follow these steps:
 ## Students
 
 - Fortunato Francesco 1848527
-- Santaroni Cristian 
+- Santaroni Cristian 1800659
 
 ## License
 
