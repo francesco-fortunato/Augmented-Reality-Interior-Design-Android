@@ -40,14 +40,14 @@ The application supports real-time collaborative sessions where multiple users c
 
 To run the Mobile-Computing-App project, follow these steps:
 
-1. Clone the repository: `git clone https://github.com/Cristian-Santaroni/Mobile-Computing-App.git`
+1. Clone the repository: `git clone https://github.com/francesco-fortunato/Augmented-Reality-Interior-Design-Android.git`
 2. Open the project in Android Studio.
 3. Build and run the application on an Android device or emulator.
 
 ## Students
 
-- Fortunato Francesco 1848527
-- Santaroni Cristian 1800659
+- Fortunato Francesco
+- Santaroni Cristian
 
 ## License
 
